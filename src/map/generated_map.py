@@ -12,7 +12,7 @@ class Generated_Map():
         # Define
         self.width = width
         self.length = length
-        self.logoddsratio = np.zeros((length / resolution, width / resolution))
+        self.logoddsratio = np.zeros((int(length / resolution), int(width / resolution)))
 
     def set(self, u, v, value):
         # Update only if legal.
