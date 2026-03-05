@@ -1,37 +1,45 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib import cm
 
-# 1. Load the data
-# Make sure this matches the path you used in Blender!
-file_path = r"C:\Users\lucas\OneDrive\Documents\133\final_square_map.csv"
-grid = np.genfromtxt(file_path, delimiter=",")
+# 1. Load your map
+grid = np.genfromtxt('src/map/final_square_map.csv', delimiter=',')
 
-# 2. Setup the Plotting Area
-fig = plt.figure(figsize=(12, 5))
-
-# --- LEFT: 2D Heatmap (Top-Down View) ---
-ax1 = fig.add_subplot(1, 2, 1)
-im = ax1.imshow(grid, cmap='terrain', origin='lower')
-plt.colorbar(im, ax=ax1, label='Elevation (m)')
-ax1.set_title("Top-Down Elevation Grid")
-ax1.set_xlabel("Grid X")
-ax1.set_ylabel("Grid Y")
-
-# --- RIGHT: 3D Surface Plot ---
-ax2 = fig.add_subplot(1, 2, 2, projection='3d')
-
-# Create X and Y coordinates for the 3D plot
+# 2. Define your scale (Must match your Blender RESOLUTION)
+resolution = 0.05  # Each cell is 0.1 meters (10cm)
 rows, cols = grid.shape
-x = np.linspace(0, cols, cols)
-y = np.linspace(0, rows, rows)
+width_m = cols * resolution
+height_m = rows * resolution
+
+# 3. Setup the figure
+fig = plt.figure(figsize=(14, 6))
+
+# --- LEFT: 2D Heatmap To Scale ---
+ax1 = fig.add_subplot(1, 2, 1)
+# 'extent' defines the [left, right, bottom, top] in meters
+extent = [0, width_m, 0, height_m]
+im = ax1.imshow(grid, cmap='terrain', origin='lower', extent=extent)
+
+ax1.set_title(f"2D Map ({width_m:.1f}m x {height_m:.1f}m)")
+ax1.set_xlabel("Meters (X)")
+ax1.set_ylabel("Meters (Y)")
+plt.colorbar(im, ax=ax1, label='Elevation (m)')
+
+# --- RIGHT: 3D Surface To Scale ---
+ax2 = fig.add_subplot(1, 2, 2, projection='3d')
+x = np.linspace(0, width_m, cols)
+y = np.linspace(0, height_m, rows)
 X, Y = np.meshgrid(x, y)
 
-# Plot the surface
-surf = ax2.plot_surface(X, Y, grid, cmap='terrain', 
-                       linewidth=0, antialiased=False)
-ax2.set_title("3D Terrain Reconstruction")
-ax2.set_zlabel("Height (m)")
+surf = ax2.plot_surface(X, Y, grid, cmap='terrain', antialiased=True)
+
+# set_box_aspect ensures the physical proportions look correct.
+z_range = np.ptp(grid) # The difference between max and min height
+ax2.set_box_aspect((width_m, height_m, z_range))
+
+ax2.set_title("3D Proportional Reconstruction")
+ax2.set_xlabel("X (m)")
+ax2.set_ylabel("Y (m)")
+ax2.set_zlabel("Z (m)")
 
 plt.tight_layout()
 plt.show()
