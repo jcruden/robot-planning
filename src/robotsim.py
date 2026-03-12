@@ -7,27 +7,18 @@
 
 '''
 
-import bisect
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.backends.backend_agg as agg
 import matplotlib.pyplot as plt
-import matplotlib.animation as animation
-import numpy as np
-import random
-import time
 import pygame
+from pygame.locals import *
 import sys
-
-from math               import inf, pi, sin, cos, sqrt, ceil, dist
-
-from shapely.geometry   import Point, LineString, Polygon, MultiPolygon
-from shapely.prepared   import prep
+import random
 
 from map import generated_map
+from map import viz
 from exploration import robot
-
-xmin = 0
-xmax = 10
-ymin = 0
-ymax = 10
 
 WIDTH, HEIGHT = 800, 800
 
@@ -39,28 +30,30 @@ def main():
     pygame.display.set_caption("Robot Planning")
 
     clock = pygame.time.Clock()
-    x, y = 100, 100
-    vx, vy = 2, 1
+    x, y = 1, 1
+    vx, vy = 0.1, 0.09
 
     rob = robot.Robot(x, y, generated_map, None)
+    map_surf = viz.viz_surface()
 
     running = True
     while running:
-
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
         
         x += vx
         y += vy
-        if (x > WIDTH or y > HEIGHT or x < 0 or y < 0):
+        if (x >= viz.width_m or x <= 0):
             vx = -vx
+        if (y >= viz.height_m or y <= 0):
             vy = -vy
 
         screen.fill((30, 30, 30))
-        #screen.blit(surf, (0, 0))
+        surf = viz.draw_robot(map_surf, rob)
+        screen.blit(surf, (0, 0))
         rob.move(x, y)
-        rob.draw(screen)
+        #rob.draw(screen)
 
         pygame.display.flip()
         clock.tick(60)
