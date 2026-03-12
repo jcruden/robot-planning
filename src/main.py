@@ -9,6 +9,7 @@
 
 import bisect
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 import numpy as np
 import random
 import time
@@ -30,11 +31,7 @@ ymax = 10
 #
 #   Visualization Class
 #
-#   This renders the world.  In particular it provides the methods:
-#     show(text = '')                   Show the current figure
-#     drawNode(node,         **kwargs)  Draw a single node
-#     drawEdge(node1, node2, **kwargs)  Draw an edge between nodes
-#     drawPath(path,         **kwargs)  Draw a path (list of nodes)
+#   This renders the world.
 #
 class Visualization:
     def __init__(self):
@@ -79,6 +76,20 @@ class Visualization:
     def drawPath(self, path, **kwargs):
         for i in range(len(path)-1):
             self.drawEdge(path[i], path[i+1], **kwargs)
+    
+    def rob_animate(self, i, rob):
+        # Update robot position
+        rob.move(rob.x + 0.1, rob.y + 0.1)
+
+        # Update map with lidar
+        rob.sensor_update(rob.x, rob.y)
+
+        # Show robot and map
+        self.updateRobot(rob)
+        self.show()
+
+    def animate(self, rob):
+        ani = animation.FuncAnimation(plt, self.rob_animate, frames = 200, interval = 20, blit = True, save_count = 100)
 
 ######################################################################
 #
@@ -96,22 +107,7 @@ def main():
 
     # Show robot and map
     visual.drawRobot(rob)
-
-    start = time.time()
-    t = time.time()
-    while t - start < 10:
-        # Update robot position
-        rob.move(rob.x + 0.1, rob.y + 0.1)
-
-        # Update map with lidar
-        rob.sensor_update(rob.x, rob.y)
-
-        # Show robot and map
-        visual.updateRobot(rob)
-        visual.show()
-        time.sleep(1)
-        t = time.time()
-
+    visual.animate(rob)
 
 if __name__== "__main__":
     main()

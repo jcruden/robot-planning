@@ -1,4 +1,5 @@
 # Update with velocity etc.
+import pygame
 
 class Robot():
     #################
@@ -16,3 +17,6 @@ class Robot():
     def move(self, x, y):
         self.x = x
         self.y = y
+
+    def draw(self, screen):
+        pygame.draw.circle(screen, (255, 0, 0), (self.x, self.y), 5)
