@@ -12,7 +12,11 @@ class Generated_Map():
         # Define
         self.width = width
         self.length = length
+        self.height = length
+        self.resolution = resolution
         self.logoddsratio = np.zeros((int(length / resolution), int(width / resolution)))
+
+        self.elevation = np.full((int(length/resolution), int(width / resolution)),np.nan)
 
     def set(self, u, v, value):
         # Update only if legal.
@@ -73,3 +77,28 @@ class Generated_Map():
                 self.adjust(int(ue), int(ve), LFREE)
             else:
                 self.adjust(int(ue), int(ve), LOCCUPIED)
+
+
+    def updateelevation(self, elevations, hit_points):
+        for i in range(len(elevations)):
+            elev = elevations[i]
+            if np.isnan(elev):
+                continue
+
+            hx, hy = hit_points[i]
+            if np.isnan(hx) or np.isnan(hy):
+                continue
+
+            # Convert world coords to grid cell
+            u = int(hx / RESOLUTION)
+            v = int(hy / RESOLUTION)
+
+            # Bounds check
+            if u < 0 or u >= self.elevation.shape[1]:
+                continue
+            if v < 0 or v >= self.elevation.shape[0]:
+                continue
+
+            # Keep the highest elevation detected at this cell
+            if np.isnan(self.elevation[v, u]) or elev > self.elevation[v, u]:
+                self.elevation[v, u] = elev
