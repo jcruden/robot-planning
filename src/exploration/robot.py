@@ -14,9 +14,13 @@ class Robot():
         # Update generated map with lidar data
         return
     
-    def move(self, x, y):
+    def moveTo(self, x, y):
         self.x = x
         self.y = y
+    
+    def move(self, vx, vy):
+        self.x += vx
+        self.y += vy
 
     def draw(self, screen):
         pygame.draw.circle(screen, (255, 0, 0), (self.x, self.y), 5)

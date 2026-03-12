@@ -22,6 +22,7 @@ from exploration import robot
 
 WIDTH, HEIGHT = 800, 800
 
+    
 def main():
     pygame.init()
 
@@ -30,10 +31,9 @@ def main():
     pygame.display.set_caption("Robot Planning")
 
     clock = pygame.time.Clock()
-    x, y = 1, 1
     vx, vy = 0.1, 0.09
 
-    rob = robot.Robot(x, y, generated_map, None)
+    rob = robot.Robot(1, 1, generated_map, None)
     map_surf = viz.viz_surface()
 
     running = True
@@ -42,18 +42,15 @@ def main():
             if event.type == pygame.QUIT:
                 running = False
         
-        x += vx
-        y += vy
-        if (x >= viz.width_m or x <= 0):
+        rob.move(vx, vy)
+        if (rob.x >= viz.width_m or rob.x <= 0):
             vx = -vx
-        if (y >= viz.height_m or y <= 0):
+        if (rob.y >= viz.height_m or rob.y <= 0):
             vy = -vy
 
         screen.fill((30, 30, 30))
         surf = viz.draw_robot(map_surf, rob)
         screen.blit(surf, (0, 0))
-        rob.move(x, y)
-        #rob.draw(screen)
 
         pygame.display.flip()
         clock.tick(60)
