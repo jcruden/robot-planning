@@ -20,9 +20,7 @@ class LaserScan:
                                     
 
 
-# ───────────────────────────────────────────────────────────────────
-#  Lidar class
-# ───────────────────────────────────────────────────────────────────
+
 class Lidar:
     """Simulated 3D LiDAR that raycasts against an elevation grid."""
 
