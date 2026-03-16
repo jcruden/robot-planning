@@ -48,7 +48,10 @@ def main():
         rob.moveTo(x, y)
 
         screen.fill((30, 30, 30))
-        surf = viz.draw_robot(map_surf, rob)
+        #base_surf = viz_surface()            # re-render fig -> pygame surface with new elev_im
+        #surf_with_robot = draw_robot(base_surf, rob)
+        #screen.blit(surf_with_robot, (0, 0))
+        surf = viz.draw_robot(rob)
         screen.blit(surf, (0, 0))
 
         pygame.display.flip()

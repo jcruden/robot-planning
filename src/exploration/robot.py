@@ -1,5 +1,6 @@
 # Update with velocity etc.
 import pygame
+import numpy as np
 
 class Robot():
     #################

@@ -51,13 +51,33 @@ ax3.set_xlim(0, width_m)
 ax3.set_ylim(0, height_m)
 ax3.grid(True)
 ax3.set_title("2D Map")
+_initial_elev = np.full_like(grid, 0, dtype=float)
+elev_im = ax3.imshow(
+    _initial_elev,
+    cmap='viridis',
+    origin='lower',
+    extent=extent,
+    vmin=-2.0,
+    vmax=2.0,
+)
+cbar = fig.colorbar(elev_im, ax=ax3)
 
 # Crater map 
 ax4 = fig.add_subplot(gs[1,1])  # Add ax3 in a 2x2 grid layout
 ax4.set_xlim(0, width_m)
 ax4.set_ylim(0, height_m)
 ax4.grid(True)
-ax4.set_title("Voxel Map")
+ax4.set_title("Occupancy Grid")
+
+_initial_occ = np.full_like(grid, 0.5, dtype=float)
+occ_im = ax4.imshow(
+    _initial_occ,
+    cmap='gray',
+    origin='lower',
+    extent=extent,
+    vmin=0.0,
+    vmax=1.0,
+)
 
 plt.tight_layout()
 #plt.show()
@@ -70,9 +90,8 @@ def get_points_on_ax(ax, x, y, surface):
         int(bbox.width * fig.dpi),
         int(bbox.height * fig.dpi),
     )
-    surf_w, surf_h = surface.get_size()
+    _, surf_h = surface.get_size()
     bottom_left = (ax_x,           surf_h - ax_y)
-    top_right = (ax_x + ax_width,  surf_h - (ax_y + ax_height))
 
     scale_x = ax_width / width_m
     scale_y = ax_height / height_m
@@ -101,18 +120,45 @@ def _draw_points_on_ax(ax, points, surface, color=(0, 255, 0), radius=2):
         pygame.draw.circle(surface, color, (px, py), radius)
 
 
-def draw_robot(surf, rob):
-    surface = surf.copy()
+def update_occupancy(generated_map):
+    global occ_im
+
+    if generated_map is None or occ_im is None:
+        return
+
+    log_odds = generated_map.logoddsratio
+    probs = 1.0 / (1.0 + np.exp(-log_odds))
+
+    occ_im.set_data(probs)
+
+def update_elevation(generated_map):
+    global elev_im
+
+    if generated_map is None or elev_im is None:
+        return
+
+    elev = generated_map.elevation
+    #print(np.nanmax(elev))
+    #heatmap = elev / (np.nanmax(elev) - np.nanmin(elev))
+    #probs = 1.0 / (1.0 + np.exp(-elev))
+
+    elev_im.set_data(elev)
+    #elev_im.set_clim(np.nanmin(elev), np.nanmax(elev))
+
+
+def draw_robot(rob):
+    update_elevation(rob.generated_map)
+    surface = viz_surface()
+
     draw_rob_ax(ax1, rob, surface)
     draw_rob_ax(ax3, rob, surface)
     draw_rob_ax(ax4, rob, surface)
 
     # Draw recent lidar scan
-    scan = getattr(rob, "last_scan", None)
-    hit_points = scan.hit_points if scan is not None else None
-    _draw_points_on_ax(ax1, hit_points, surface)
-    _draw_points_on_ax(ax3, hit_points, surface)
-    _draw_points_on_ax(ax4, hit_points, surface)
+    # scan = getattr(rob, "last_scan", None)
+    # hit_points = scan.hit_points if scan is not None else None
+    #_draw_points_on_ax(ax1, hit_points, surface)
+    
     return surface
 
 def viz_surface():
