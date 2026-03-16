@@ -23,8 +23,6 @@ ax1 = fig.add_subplot(gs[0,0])
 # 'extent' defines the [left, right, bottom, top] in meters
 extent = [0, width_m, 0, height_m]
 im = ax1.imshow(grid, cmap='terrain', origin='lower', extent=extent)
-#ax1.axis('off')
-#ax1.set_position([0, 0, 1, 1])
 ax1.set_title(f"2D Map ({width_m:.1f}m x {height_m:.1f}m)")
 ax1.set_xlabel("Meters (X)")
 ax1.set_ylabel("Meters (Y)")
@@ -52,20 +50,19 @@ ax3 = fig.add_subplot(gs[1,0])  # Add ax3 in a 2x2 grid layout
 ax3.set_xlim(0, width_m)
 ax3.set_ylim(0, height_m)
 ax3.grid(True)
-ax3.set_title("Obstacle Map")
+ax3.set_title("2D Map")
 
 # Crater map 
 ax4 = fig.add_subplot(gs[1,1])  # Add ax3 in a 2x2 grid layout
 ax4.set_xlim(0, width_m)
 ax4.set_ylim(0, height_m)
 ax4.grid(True)
-ax4.set_title("Crater Map")
+ax4.set_title("Voxel Map")
 
 plt.tight_layout()
 #plt.show()
 
-def draw_rob_ax(ax, rob, surface):
-    # Get the bounding box of ax in pixels
+def get_points_on_ax(ax, x, y, surface):
     bbox = ax.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
     ax_x, ax_y, ax_width, ax_height = (
         int(bbox.x0 * fig.dpi),
@@ -73,64 +70,49 @@ def draw_rob_ax(ax, rob, surface):
         int(bbox.width * fig.dpi),
         int(bbox.height * fig.dpi),
     )
-    # Calculate scaling factors between world meters and pixels for this axes
+    surf_w, surf_h = surface.get_size()
+    bottom_left = (ax_x,           surf_h - ax_y)
+    top_right = (ax_x + ax_width,  surf_h - (ax_y + ax_height))
+
     scale_x = ax_width / width_m
     scale_y = ax_height / height_m
 
-    # Convert robot's position from meters to pixels relative to this axes
-    robot_x_px = int(rob.x * scale_x)
-    robot_y_px = int(rob.y * scale_y)
+    # Convert to px relative to axis
+    x_px = bottom_left[0] + int(x * scale_x)
+    y_px = bottom_left[1] -int(y * scale_y)
 
-    # Invert the Y-axis for pygame rendering
-    robot_y_px = ax_height - robot_y_px
+    return x_px, y_px
 
-    # Adjust the robot's position to the axes region within the full surface
-    robot_x_px += ax_x
-    robot_y_px += ax_y
-
-    # Draw the robot as a red circle on the surface
-    pygame.draw.circle(surface, (255, 0, 0), (robot_x_px, robot_y_px), 5)  # Radius of 5 pixels
+def draw_rob_ax(ax, rob, surface):
+    x, y = get_points_on_ax(ax, rob.x, rob.y, surface)
+    pygame.draw.circle(surface, (255, 0, 0), (x, y), 5)
 
 
 def _draw_points_on_ax(ax, points, surface, color=(0, 255, 0), radius=2):
     if points is None:
         return
 
-    # Get the bounding box of ax in pixels
-    bbox = ax.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
-    ax_x, ax_y, ax_width, ax_height = (
-        int(bbox.x0 * fig.dpi),
-        int(bbox.y0 * fig.dpi),
-        int(bbox.width * fig.dpi),
-        int(bbox.height * fig.dpi),
-    )
-
-    # Scaling between m and pixels for this axes
-    scale_x = ax_width / width_m
-    scale_y = ax_height / height_m
-
     for hx, hy in points:
         if np.isnan(hx) or np.isnan(hy):
             continue
-
-        px = int(hx * scale_x)
-        py = int(hy * scale_y)
-        py = ax_height - py
-
-        px += ax_x
-        py += ax_y
+        
+        px, py = get_points_on_ax(ax, hx, hy, surface)
 
         pygame.draw.circle(surface, color, (px, py), radius)
 
 
 def draw_robot(surf, rob):
     surface = surf.copy()
+    draw_rob_ax(ax1, rob, surface)
     draw_rob_ax(ax3, rob, surface)
+    draw_rob_ax(ax4, rob, surface)
 
     # Draw recent lidar scan
     scan = getattr(rob, "last_scan", None)
     hit_points = scan.hit_points if scan is not None else None
+    _draw_points_on_ax(ax1, hit_points, surface)
     _draw_points_on_ax(ax3, hit_points, surface)
+    _draw_points_on_ax(ax4, hit_points, surface)
     return surface
 
 def viz_surface():

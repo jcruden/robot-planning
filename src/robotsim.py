@@ -15,12 +15,14 @@ import pygame
 from pygame.locals import *
 import sys
 import random
+import numpy as np
 
 from map import generated_map
 from map import viz
+from map.Lidar import Lidar
 from exploration import robot
 
-WIDTH, HEIGHT = 800, 800
+WIDTH, HEIGHT = 1000, 1000
 
     
 def main():
@@ -31,9 +33,12 @@ def main():
     pygame.display.set_caption("Robot Planning")
 
     clock = pygame.time.Clock()
-    vx, vy = 0.1, 0.09
+    vx, vy = 0, 0
 
-    rob = robot.Robot(1, 1, generated_map, None)
+    grid = np.genfromtxt('src/map/final_square_map.csv', delimiter=',')
+    gen_map = generated_map.Generated_Map(viz.width_m, viz.height_m, viz.resolution)
+    lidar = Lidar(grid, resolution=viz.resolution)
+    rob = robot.Robot(1, 1, gen_map, lidar)
     map_surf = viz.viz_surface()
 
     running = True
@@ -41,6 +46,18 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+            pressed_keys = pygame.key.get_pressed()
+            if pressed_keys[pygame.K_UP]:
+                vy += 0.01
+            if pressed_keys[pygame.K_DOWN]:
+                vy -= 0.01
+            if pressed_keys[pygame.K_LEFT]:
+                vx -= 0.01
+            if pressed_keys[pygame.K_RIGHT]:
+                vx += 0.01
+            if pressed_keys[pygame.K_SPACE]:
+                vx = 0
+                vy = 0
         
         rob.move(vx, vy)
         if (rob.x >= viz.width_m or rob.x <= 0):
