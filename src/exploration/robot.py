@@ -39,6 +39,3 @@ class Robot():
         self.x += vx
         self.y += vy
         self.sensor_update()
-
-    def draw(self, screen):
-        pygame.draw.circle(screen, (255, 0, 0), (self.x, self.y), 5)
