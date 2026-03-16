@@ -60,10 +60,14 @@ def main():
                 vy = 0
         
         rob.move(vx, vy)
-        if (rob.x >= viz.width_m or rob.x <= 0):
-            vx = -vx
-        if (rob.y >= viz.height_m or rob.y <= 0):
-            vy = -vy
+        if (rob.x >= viz.width_m):
+            rob.x = viz.width_m
+        if (rob.x <= 0):
+            rob.x = 0
+        if (rob.y >= viz.height_m):
+            rob.y = viz.height_m
+        if (rob.y <= 0):
+            rob.y = 0
 
         screen.fill((30, 30, 30))
         surf = viz.draw_robot(map_surf, rob)
