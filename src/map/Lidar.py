@@ -8,15 +8,18 @@ from math import pi
 class LaserScan:
     """Scan result with range and elevation data."""
     angle_min:       float          
-    angle_max:       float          
+    angle_max:       float
+    vertical_min:    float
+    vertical_max:    float          
     angle_increment: float          
     range_min:       float          
     range_max:       float          
     ranges:          np.ndarray     
-    thetas:          np.ndarray    
-    elevations:      np.ndarray     
-                                    
-    hit_points:      np.ndarray     
+    thetas:          np.ndarray 
+    deltas:          np.ndarray   
+    elevations:      np.ndarray                                       
+    hit_points:      np.ndarray
+    free:            set     
                                     
 
 
@@ -29,12 +32,14 @@ class Lidar:
     def __init__(
         self,
         ground_truth:     np.ndarray,
-        resolution:       float = 0.05,
-        robot_height:     float = 0.0,
+        world_resolution: float = 0.05,
+        grid_resolution:  float = 0.1,
+        robot_height:     float = 0.25,
         angle_min:        float = 0.0,
         angle_max:        float = 2 * pi,
-        angle_increment:  float = 2 * pi / 360,
-        elevation_angles: list  = None,
+        angle_increment:  float = None,
+        vertical_min:     float = -pi/6,
+        vertical_max:     float = pi/6,
         range_min:        float = 0.12,
         range_max:        float = 3.5,
         ray_step:         float = None,
@@ -43,29 +48,28 @@ class Lidar:
         origin_lower:     bool  = True,
     ):
         self.ground_truth = ground_truth
-        self.resolution   = resolution
+        self.world_resolution = world_resolution
+        self.grid_resolution = grid_resolution
         self.robot_height = robot_height
         self.rows, self.cols = ground_truth.shape
 
-        self.world_width  = self.cols * resolution
-        self.world_height = self.rows * resolution
+        self.world_width  = self.cols * world_resolution
+        self.world_height = self.rows * world_resolution
 
         self.angle_min       = angle_min
         self.angle_max       = angle_max
-        self.angle_increment = angle_increment
+        self.angle_increment = 2 * pi / (360 * .1 / grid_resolution)
+        self.vertical_min    = vertical_min
+        self.vertical_max    = vertical_max
         self.range_min       = range_min
         self.range_max       = range_max
-        self.ray_step        = ray_step if ray_step else resolution
+        self.ray_step        = ray_step if ray_step else grid_resolution/2
         self.noise_std       = noise_std
         self.origin_lower    = origin_lower
 
-        if elevation_angles is None:
-            self.elevation_angles = [-0.3, -0.15, -0.05, 0.0, 0.05, 0.15]
-        else:
-            self.elevation_angles = list(elevation_angles)
-
         self._rng = np.random.default_rng(seed)
-        self.thetas = np.arange(angle_min, angle_max, angle_increment)
+        self.thetas = np.arange(angle_min, angle_max, self.angle_increment)
+        self.deltas = np.arange(vertical_min, vertical_max, self.angle_increment)
 
     
     def scan(self, x: float, y: float, theta: float = 0.0) -> LaserScan:
@@ -73,35 +77,24 @@ class Lidar:
 
         robot_z = self._get_elevation(x, y) + self.robot_height
         n = len(self.thetas)
+        k = len(self.deltas)
 
-        ranges     = np.full(n, self.range_max)
-        elevations = np.full(n, np.nan)
-        hit_points = np.full((n, 2), np.nan)
+        ranges     = np.full(n*k, self.range_max)
+        elevations = np.full(n*k, np.nan)
+        hit_points = np.full((n*k, 2), np.nan)
+        free = set()
 
         for i, azimuth in enumerate(self.thetas):
             world_azimuth = azimuth + theta
-            best_range    = self.range_max
-            highest_elev  = -np.inf
-            highest_hit   = None
-            any_hit       = False
 
-            for elev in self.elevation_angles:
-                r, hx, hy = self._cast_ray(x, y, robot_z, world_azimuth, elev)
+            for j, incline in enumerate(self.deltas):
+                r, hx, hy, freespaces = self._cast_ray(x, y, robot_z, world_azimuth, incline)
                 if r < self.range_max and not np.isnan(hx):
-                    any_hit = True
-                    # Track closest hit for range
-                    if r < best_range:
-                        best_range = r
-                    # Track highest elevation across all hits
-                    hit_z = self._get_elevation(hx, hy)
-                    if hit_z > highest_elev:
-                        highest_elev = hit_z
-                        highest_hit  = (hx, hy)
-
-            ranges[i] = best_range
-            if any_hit:
-                elevations[i] = highest_elev
-                hit_points[i] = highest_hit
+                    ranges[i*k + j] = r
+                    elevations[i*k + j] = self._get_elevation(hx, hy)
+                    hit_points[i*k + j] = (hx, hy)
+                free.update(freespaces)
+                    
 
         # Add noise to ranges
         if self.noise_std > 0.0:
@@ -117,27 +110,31 @@ class Lidar:
         return LaserScan(
             angle_min       = self.angle_min,
             angle_max       = self.angle_max,
+            vertical_min    = self.vertical_min,
+            vertical_max    = self.vertical_max,
             angle_increment = self.angle_increment,
             range_min       = self.range_min,
             range_max       = self.range_max,
             ranges          = ranges,
             thetas          = self.thetas,
+            deltas          = self.deltas,
             elevations      = elevations,
             hit_points      = hit_points,
+            free            = free
         )
 
     def set_ground_truth(self, ground_truth: np.ndarray) -> None:
         """Replace the ground truth elevation grid at runtime."""
         self.ground_truth = ground_truth
         self.rows, self.cols = ground_truth.shape
-        self.world_width  = self.cols * self.resolution
-        self.world_height = self.rows * self.resolution
+        self.world_width  = self.cols * self.world_resolution
+        self.world_height = self.rows * self.world_resolution
 
     
     def _get_elevation(self, x: float, y: float) -> float:
         """interpolated elevation at world coords (x, y)."""
-        col = x / self.resolution
-        row = y / self.resolution if self.origin_lower else (self.world_height - y) / self.resolution
+        col = x / self.world_resolution
+        row = y / self.world_resolution if self.origin_lower else (self.world_height - y) / self.world_resolution
 
         c0 = int(np.floor(col))
         r0 = int(np.floor(row))
@@ -160,7 +157,7 @@ class Lidar:
     def _cast_ray(self, x0, y0, z0, azimuth, elevation):
         """March a ray and return (range, hit_x, hit_y)"""
 
-      
+        free = set()
         cos_az = np.cos(azimuth)
         sin_az = np.sin(azimuth)
         cos_el = np.cos(elevation)
@@ -181,7 +178,7 @@ class Lidar:
             rz = z0 + dz * dist
 
             if rx < 0 or rx >= self.world_width or ry < 0 or ry >= self.world_height:
-                return (self.range_max, np.nan, np.nan)
+                return (self.range_max, np.nan, np.nan, free)
 
             terrain_z = self._get_elevation(rx, ry)
 
@@ -204,6 +201,7 @@ class Lidar:
                 refined = max(refined, self.range_min)
                 hx = x0 + dx * refined
                 hy = y0 + dy * refined
-                return (refined, hx, hy)
-
-        return (self.range_max, np.nan, np.nan)
+                return (refined, hx, hy, free)
+            else:
+                free.add(tuple(np.floor((rx/self.grid_resolution, ry/self.grid_resolution, rz/self.grid_resolution))))
+        return (self.range_max, np.nan, np.nan, free)
