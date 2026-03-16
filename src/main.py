@@ -11,6 +11,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.backends.backend_agg as agg
 import matplotlib.pyplot as plt
+import numpy as np
 import pygame
 from pygame.locals import *
 import sys
@@ -18,6 +19,7 @@ import random
 
 from map import generated_map
 from map import viz
+from map.Lidar import Lidar
 from exploration import robot
 
 WIDTH, HEIGHT = 1000, 1000
@@ -30,7 +32,12 @@ def main():
     screen = pygame.display.get_surface()
     pygame.display.set_caption("Robot Planning")
 
-    rob = robot.Robot(1, 1, generated_map, None)
+    grid = np.genfromtxt('src/map/final_square_map.csv', delimiter=',')
+
+    gen_map = generated_map.Generated_Map(viz.width_m, viz.height_m, viz.resolution)
+    lidar = Lidar(grid, resolution=viz.resolution)
+    rob = robot.Robot(1, 1, gen_map, lidar)
+
     map_surf = viz.viz_surface()
 
     running = True

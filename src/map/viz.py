@@ -73,20 +73,18 @@ def draw_rob_ax(ax, rob, surface):
         int(bbox.width * fig.dpi),
         int(bbox.height * fig.dpi),
     )
-    print(rob.x, rob.y, ax_x, ax_y, ax_width, ax_height)
+    # Calculate scaling factors between world meters and pixels for this axes
+    scale_x = ax_width / width_m
+    scale_y = ax_height / height_m
 
-    # Calculate scaling factors between ax1 and the full pygame surface
-    scale_x = ax_width / (width_m / resolution)
-    scale_y = ax_height / (height_m / resolution)
-
-    # Convert robot's position from meters to pixels relative to ax1
-    robot_x_px = int(rob.x / resolution * scale_x)
-    robot_y_px = int(rob.y / resolution * scale_y)
+    # Convert robot's position from meters to pixels relative to this axes
+    robot_x_px = int(rob.x * scale_x)
+    robot_y_px = int(rob.y * scale_y)
 
     # Invert the Y-axis for pygame rendering
     robot_y_px = ax_height - robot_y_px
 
-    # Adjust the robot's position to the ax1 region within the full surface
+    # Adjust the robot's position to the axes region within the full surface
     robot_x_px += ax_x
     robot_y_px += ax_y
 
@@ -94,15 +92,45 @@ def draw_rob_ax(ax, rob, surface):
     pygame.draw.circle(surface, (255, 0, 0), (robot_x_px, robot_y_px), 5)  # Radius of 5 pixels
 
 
+def _draw_points_on_ax(ax, points, surface, color=(0, 255, 0), radius=2):
+    if points is None:
+        return
+
+    # Get the bounding box of ax in pixels
+    bbox = ax.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
+    ax_x, ax_y, ax_width, ax_height = (
+        int(bbox.x0 * fig.dpi),
+        int(bbox.y0 * fig.dpi),
+        int(bbox.width * fig.dpi),
+        int(bbox.height * fig.dpi),
+    )
+
+    # Scaling between m and pixels for this axes
+    scale_x = ax_width / width_m
+    scale_y = ax_height / height_m
+
+    for hx, hy in points:
+        if np.isnan(hx) or np.isnan(hy):
+            continue
+
+        px = int(hx * scale_x)
+        py = int(hy * scale_y)
+        py = ax_height - py
+
+        px += ax_x
+        py += ax_y
+
+        pygame.draw.circle(surface, color, (px, py), radius)
+
+
 def draw_robot(surf, rob):
     surface = surf.copy()
-    print("ax1 bbox:", ax1.get_window_extent())
-    print("ax2 bbox:", ax2.get_window_extent())
-    print("ax3 bbox:", ax3.get_window_extent())
-    print("ax4 bbox:", ax4.get_window_extent())
-    draw_rob_ax(ax1, rob, surface)
     draw_rob_ax(ax3, rob, surface)
-    draw_rob_ax(ax4, rob, surface)
+
+    # Draw recent lidar scan
+    scan = getattr(rob, "last_scan", None)
+    hit_points = scan.hit_points if scan is not None else None
+    _draw_points_on_ax(ax3, hit_points, surface)
     return surface
 
 def viz_surface():
