@@ -34,16 +34,16 @@ class Lidar:
         ground_truth:     np.ndarray,
         world_resolution: float = 0.05,
         grid_resolution:  float = 0.1,
-        robot_height:     float = 0.25,
+        robot_height:     float = 0.1,
         angle_min:        float = 0.0,
         angle_max:        float = 2 * pi,
         angle_increment:  float = None,
         vertical_min:     float = -pi/6,
         vertical_max:     float = pi/6,
         range_min:        float = 0.12,
-        range_max:        float = 3.5,
+        range_max:        float = 2.5,
         ray_step:         float = None,
-        noise_std:        float = 0.01,
+        noise_std:        float = 0.00,
         seed:             int   = None,
         origin_lower:     bool  = True,
     ):
@@ -55,10 +55,11 @@ class Lidar:
 
         self.world_width  = self.cols * world_resolution
         self.world_height = self.rows * world_resolution
+        self.max_elev = ground_truth.max()
 
         self.angle_min       = angle_min
         self.angle_max       = angle_max
-        self.angle_increment = 2 * pi / (360 * .1 / grid_resolution)
+        self.angle_increment = 2 * pi / (360 * .05 / grid_resolution)
         self.vertical_min    = vertical_min
         self.vertical_max    = vertical_max
         self.range_min       = range_min
@@ -79,8 +80,8 @@ class Lidar:
         n = len(self.thetas)
         k = len(self.deltas)
 
-        ranges     = np.full(n*k, self.range_max)
-        elevations = np.full(n*k, np.nan)
+        ranges     = np.full((n*k,1), self.range_max)
+        elevations = np.full((n*k,1), np.nan)
         hit_points = np.full((n*k, 2), np.nan)
         free = set()
 
@@ -95,7 +96,7 @@ class Lidar:
                     hit_points[i*k + j] = (hx, hy)
                 free.update(freespaces)
                     
-
+        
         # Add noise to ranges
         if self.noise_std > 0.0:
             noise = self._rng.normal(0.0, self.noise_std, size=ranges.shape)
@@ -157,7 +158,7 @@ class Lidar:
     def _cast_ray(self, x0, y0, z0, azimuth, elevation):
         """March a ray and return (range, hit_x, hit_y)"""
 
-        free = set()
+        free   = set()
         cos_az = np.cos(azimuth)
         sin_az = np.sin(azimuth)
         cos_el = np.cos(elevation)
@@ -177,7 +178,7 @@ class Lidar:
             ry = y0 + dy * dist
             rz = z0 + dz * dist
 
-            if rx < 0 or rx >= self.world_width or ry < 0 or ry >= self.world_height:
+            if rx < 0 or rx >= self.world_width or ry < 0 or ry >= self.world_height or rz < 0 or rz > self.max_elev - self.grid_resolution:
                 return (self.range_max, np.nan, np.nan, free)
 
             terrain_z = self._get_elevation(rx, ry)
@@ -203,5 +204,5 @@ class Lidar:
                 hy = y0 + dy * refined
                 return (refined, hx, hy, free)
             else:
-                free.add(tuple(np.floor((rx/self.grid_resolution, ry/self.grid_resolution, rz/self.grid_resolution))))
+                free.add(tuple((int(np.floor(rx/self.grid_resolution)), int(np.floor(ry/self.grid_resolution)), int(np.ceil(rz/self.grid_resolution)))))
         return (self.range_max, np.nan, np.nan, free)
