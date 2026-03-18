@@ -15,8 +15,8 @@ width_m = cols * resolution
 height_m = rows * resolution
 
 # 3. Setup the figure
-fig = plt.figure(figsize=(6, 6))
-gs = GridSpec(2, 2, figure=fig)
+fig = plt.figure(figsize=(6, 9))
+gs = GridSpec(3, 2, figure=fig)
 
 # --- LEFT: 2D Heatmap To Scale ---
 ax1 = fig.add_subplot(gs[0,0])
@@ -79,6 +79,40 @@ var_im = ax4.imshow(
 )
 c4bar = fig.colorbar(var_im, ax=ax4)
 
+# Generated map 2
+ax5 = fig.add_subplot(gs[2,0])
+ax5.set_xlim(0, width_m)
+ax5.set_ylim(0, height_m)
+ax5.grid(True)
+ax5.set_title("2D Map")
+_initial_elev2 = np.full_like(grid, 0, dtype=float)
+elev_im2 = ax5.imshow(
+    _initial_elev2,
+    cmap='viridis',
+    origin='lower',
+    extent=extent,
+    vmin=0.0,
+    vmax=5.0,
+)
+c5bar = fig.colorbar(elev_im, ax=ax5)
+
+# Var map 2
+ax6 = fig.add_subplot(gs[2,1])
+ax6.set_xlim(0, width_m)
+ax6.set_ylim(0, height_m)
+ax6.grid(True)
+ax6.set_title("Variance Map")
+_initial_var2 = np.full_like(grid, 0, dtype=float)
+var_im2 = ax6.imshow(
+    _initial_var2,
+    cmap='viridis',
+    origin='lower',
+    extent=extent,
+    vmin=0.0,
+    vmax=0.01,
+)
+c6bar = fig.colorbar(var_im, ax=ax6)
+
 plt.tight_layout()
 #plt.show()
 
@@ -111,6 +145,8 @@ cached_params = {
     ax1: precompute_axis_params(ax1, viz_surface()),
     ax3: precompute_axis_params(ax3, viz_surface()),
     ax4: precompute_axis_params(ax4, viz_surface()),
+    ax5: precompute_axis_params(ax5, viz_surface()),
+    ax6: precompute_axis_params(ax6, viz_surface()),
 }
 
 # Update get_points_on_ax to use cached parameters
@@ -155,12 +191,27 @@ def update_elevation(generated_map):
     var = generated_map.get_elevation_var()
     var_im.set_data(var)
 
-def draw_robot(rob):
+def update_elevation2(generated_map):
+    global elev_im2, var_im2
+    if generated_map is None or elev_im2 is None or var_im2 is None:
+        return
+    elev = generated_map.get_elevation()
+    elev_im2.set_data(elev)
+
+    var = generated_map.get_elevation_var()
+    var_im2.set_data(var)
+
+def draw_robot(rob, rob2=None):
     update_elevation(rob.generated_map)
+    update_elevation2(rob2.generated_map)
     surface = viz_surface()
 
     draw_rob_ax(ax1, rob, surface)
     draw_rob_ax(ax3, rob, surface)
     draw_rob_ax(ax4, rob, surface)
+    if rob2:
+        draw_rob_ax(ax1, rob2, surface)
+        draw_rob_ax(ax5, rob2, surface)
+        draw_rob_ax(ax6, rob2, surface)
     
     return surface
