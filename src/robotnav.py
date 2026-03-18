@@ -26,8 +26,8 @@ def main():
     grid = np.genfromtxt('src/map/final_square_map.csv', delimiter=',')
     gen_map = generated_map.Generated_Map(viz.width_m, viz.height_m, viz.resolution)
     gen_map2 = generated_map.Generated_Map(viz.width_m, viz.height_m, viz.resolution)
-    lidar = Lidar(grid, world_resolution=viz.resolution, noise_std=0)
-    rob = robot.Robot(1, 1, gen_map, lidar, grid)
+    lidar = Lidar(grid, world_resolution=viz.resolution, noise_std=0.1)
+    rob = robot.Robot(1, 1, gen_map, lidar, grid, random = True)
     lidar2 = Lidar(grid, world_resolution=viz.resolution, noise_std=0.1)
     rob2 = robot.Robot(1, 1, gen_map2, lidar2, grid, random=False)
     interval = 20
@@ -60,8 +60,8 @@ def main():
         pygame.display.flip()
         clock.tick(30)
     
-    print("Robot 1 with lidar noise ", lidar.noise_std, ": ", int(100 * rob.calculate_score()), " / 100")
-    print("Robot 2 lidar noise ",lidar2.noise_std, ": ", int(100 * rob2.calculate_score()), " / 100")
+    print("Robot 1 (random): ", int(100 * rob.calculate_score()), " / 100")
+    print("Robot 2 (closest): ", int(100 * rob2.calculate_score()), " / 100")
     input("Hit enter to end:")
 
     pygame.quit()
