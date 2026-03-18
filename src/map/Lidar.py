@@ -38,7 +38,7 @@ class Lidar:
         angle_min:        float = 0.0,
         angle_max:        float = 2 * pi,
         angle_increment:  float = None,
-        vertical_min:     float = -pi/6,
+        vertical_min:     float = -pi/4,
         vertical_max:     float = pi/6,
         range_min:        float = 0.12,
         range_max:        float = 2.5,

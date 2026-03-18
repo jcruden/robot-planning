@@ -58,7 +58,7 @@ elev_im = ax3.imshow(
     origin='lower',
     extent=extent,
     vmin=0.0,
-    vmax=4.0,
+    vmax=5.0,
 )
 cbar = fig.colorbar(elev_im, ax=ax3)
 
