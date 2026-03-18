@@ -24,34 +24,51 @@ from exploration import robot
 from exploration.astar import planner
 
 WIDTH, HEIGHT = 600, 600
-        
+
 def find_closest_frontier(robot, generated_map):
     rows, cols = generated_map.elevationmean.shape
-    frontiers = []
     robot_u = int(robot.x / generated_map.resolution)
     robot_v = int(robot.y / generated_map.resolution)
 
-    for v in range(rows):
-        for u in range(cols):
-            if abs(u - robot_u) + abs(v - robot_v) < 5:  # Skip cells too close to the robot
-                continue
-            if np.isnan(generated_map.elevationmean[v, u]):
-                # Check if adjacent cells are free
-                for dv, du in [(-1, 0), (1, 0), (0, -1), (0, 1), (-2, 0), (2, 0), (0, -2), (0, 2)]:
-                    nv, nu = v + dv, u + du
-                    if generated_map._in_bounds(nu, nv) and not np.isnan(generated_map.elevationmean[nv, nu]):
-                        frontiers.append((u, v))
-                        break
+    # Create mask for NaN and neighbors
+    nan_mask = np.isnan(generated_map.elevationmean)
+    valid_neighbors = ~nan_mask
+
+    # Generate grid indices
+    u_indices, v_indices = np.meshgrid(np.arange(cols), np.arange(rows))
+    distances = np.sqrt((u_indices - robot_u)**2 + (v_indices - robot_v)**2)
+
+    # No cells too close to the robot
+    too_close_mask = distances < 5
+    nan_mask[too_close_mask] = False
+
+    # Find frontiers
+    frontiers = []
+    for dv, du in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+        shifted_nan_mask = np.roll(np.roll(nan_mask, dv, axis=0), du, axis=1)
+        frontiers_mask = shifted_nan_mask & valid_neighbors
+        #frontiers.extend(zip(u_indices[frontiers_mask], v_indices[frontiers_mask]))
+
+        for u, v in zip(u_indices[frontiers_mask], v_indices[frontiers_mask]):
+            # Calculate information gain as the number of unknown neighbors
+            info_gain = 0
+            for ddv, ddu in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                nu, nv = u + ddu, v + ddv
+                if 0 <= nu < cols and 0 <= nv < rows and nan_mask[nv, nu]:
+                    info_gain += 1
+
+            frontiers.append((u, v, info_gain, distances[v, u]))
 
     if not frontiers:
         return None
     # Return random frontier
-    random_frontier = random.choice(frontiers)
-    return random_frontier
+    #random_frontier = random.choice(frontiers)
+    #return random_frontier
     
-    # Find closest frontier to robot
-    #closest_frontier = min(frontiers, key=lambda f: abs(f[0] - robot_u) + abs(f[1] - robot_v))
-    #return closest_frontier
+    # Find closest frontier
+    #closest_frontier = min(frontiers, key=lambda f: np.sqrt((f[0] - robot_u)**2 + (f[1] - robot_v)**2))
+    closest_frontier = max(frontiers, key=lambda f: (f[2] / f[3]))
+    return closest_frontier
 
 def main():
     pygame.init()
@@ -84,16 +101,7 @@ def main():
             rob.sensor_update()
             last_time = current_time
 
-            if path:
-                if curr < len(path):
-                    next_step = path[curr]
-                    next_x, next_y = next_step[0] * gen_map.resolution, next_step[1] * gen_map.resolution
-                    rob.moveTo(next_x, next_y)
-                    curr += 1
-                else:
-                    path = None
-                    curr = 0
-            else:
+            if not path:
                 # Find the closest frontier
                 frontier = find_closest_frontier(rob, gen_map)
                 # Convert frontier to world coordinates
@@ -104,10 +112,15 @@ def main():
                 start = (int(rob.x / gen_map.resolution), int(rob.y / gen_map.resolution))
                 goal = (frontier[0], frontier[1])
                 path = planner(start, goal, gen_map.elevationmean, gen_map)
-
-        position = (rob.x, rob.y)
-        position = np.clip(position, [0, 0], [viz.width_m, viz.height_m])  # Keep within bounds
-        rob.x, rob.y = position
+            
+            if curr < len(path):
+                    next_step = path[curr]
+                    next_x, next_y = next_step[0] * gen_map.resolution, next_step[1] * gen_map.resolution
+                    rob.moveTo(next_x, next_y)
+                    curr += 1
+            else:
+                path = None
+                curr = 0
 
         screen.fill((30, 30, 30))
         surf = viz.draw_robot(rob)

@@ -75,7 +75,7 @@ var_im = ax4.imshow(
     origin='lower',
     extent=extent,
     vmin=0.0,
-    vmax=0.05,
+    vmax=0.01,
 )
 c4bar = fig.colorbar(var_im, ax=ax4)
 
