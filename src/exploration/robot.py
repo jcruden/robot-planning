@@ -17,6 +17,7 @@ class Robot():
         self.path = None
         self.curr = 0
         self.random = random
+        self.fuel = 3
 
     def sensor_update(self):
         if self.lidar is None or self.generated_map is None:
@@ -99,6 +100,7 @@ class Robot():
         if self.curr < len(self.path):
             next_step = self.path[self.curr]
             next_x, next_y = next_step[0] * self.generated_map.resolution, next_step[1] * self.generated_map.resolution
+            self.fuel -= max(0, (self.generated_map.elevationmean[next_step[1], next_step[0]] - self.generated_map.elevationmean[int(self.y / self.generated_map.resolution), int(self.x / self.generated_map.resolution)]))
             self.moveTo(next_x, next_y)
             self.curr += 1
         else:

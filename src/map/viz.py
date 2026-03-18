@@ -167,6 +167,11 @@ def draw_rob_ax(ax, rob, surface):
     if rob.destination:
         dest_x, dest_y = get_points_on_ax(ax, rob.destination[0], rob.destination[1], surface)
         pygame.draw.circle(surface, (0, 0, 0), (dest_x, dest_y), 3)
+    
+    if rob.fuel:
+        font = pygame.font.Font(None, 24)
+        fuel_text = font.render(f"F: {round(rob.fuel)}", True, (0, 0, 0))
+        surface.blit(fuel_text, (x + 10, y - 20))
 
 def update_occupancy(generated_map):
     global occ_im

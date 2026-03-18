@@ -90,17 +90,17 @@ class Generated_Map():
             else:
                 self.adjust(int(ue), int(ve), LOCCUPIED)
 
-    def slope(self, x, y):
-        slopes = []
-        for (dx, dy) in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
-            nx = x + dx
-            ny = y + dy
-            if self._in_bounds(nx, ny):
-                slopes.append(self.elevationmean[ny, nx] - self.elevationmean[y, x])
-        return max(slopes) if slopes else 0
+    #def slope(self, x, y):
+    #    slopes = []
+    #    for (dx, dy) in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+    #        nx = x + dx
+    #        ny = y + dy
+    #        if self._in_bounds(nx, ny):
+    #            slopes.append(self.elevationmean[ny, nx] - self.elevationmean[y, x])
+    #    return max(slopes) if slopes else 0
     
-    def legalslope(self, x, y):
-        return self.slope(x, y) <= 1
+    #def legalslope(self, x, y):
+    #    return self.slope(x, y) <= 1
 
     def updateelevation(self, x, y, elevations, hit_points, lidar_var = None):
         max_heights = {}

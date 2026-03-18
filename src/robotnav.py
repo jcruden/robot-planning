@@ -56,12 +56,15 @@ def main():
 
         current_time = pygame.time.get_ticks()
         if current_time - last_time >= interval:
-            rob.sensor_update()
-            rob2.sensor_update()
+            if (rob.fuel > 0):
+                rob.sensor_update()
+                rob.move_path()
+            if (rob2.fuel > 0):
+                rob2.sensor_update()
+                rob2.move_path()
+            if (rob.fuel <= 0 and rob2.fuel <= 0):
+                running = False
             last_time = current_time
-
-            rob.move_path()
-            rob2.move_path()
 
         screen.fill((30, 30, 30))
         surf = viz.draw_robot(rob, rob2)
@@ -69,6 +72,10 @@ def main():
 
         pygame.display.flip()
         clock.tick(30)
+    
+    print("Robot 1 explored: ", int(100 * np.sum(~np.isnan(rob.generated_map.elevationmean)) / (viz.width_m / viz.resolution * viz.height_m / viz.resolution)), " % of map")
+    print("Robot 2 explored: ", int(100 * np.sum(~np.isnan(rob2.generated_map.elevationmean)) / (viz.width_m / viz.resolution * viz.height_m / viz.resolution)), " % of map")
+    input("Hit enter to end:")
 
     pygame.quit()
     sys.exit()

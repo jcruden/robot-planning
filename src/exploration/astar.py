@@ -96,6 +96,8 @@ def deltacost(node1, node2):
 # Actual cost from node to it's neighbor.
 def costtoneighbor(node, neighbor, elevation_map):
     elevation_cost = abs(elevation_map[neighbor.row, neighbor.col] - elevation_map[node.row, node.col])
+    if (elevation_cost < 0):
+        return sqrt((node.row-neighbor.row)**2 + (node.col-neighbor.col)**2) # no elev cost for downhill
     return sqrt((node.row-neighbor.row)**2 + (node.col-neighbor.col)**2 + elevation_cost**2)
 
 # Estimate the cost to go from state to goal.
