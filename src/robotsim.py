@@ -37,9 +37,8 @@ def main():
 
     grid = np.genfromtxt('src/map/final_square_map.csv', delimiter=',')
     gen_map = generated_map.Generated_Map(viz.width_m, viz.height_m, viz.resolution)
-    lidar = Lidar(grid, world_resolution=viz.resolution)
+    lidar = Lidar(grid, world_resolution=viz.resolution, noise_std=0.1)
     rob = robot.Robot(1, 1, gen_map, lidar)
-    map_surf = viz.viz_surface()
 
     running = True
     while running:
@@ -60,6 +59,7 @@ def main():
                 velocity[1] = 0
 
         rob.move(velocity[0], velocity[1])
+        rob.sensor_update()
         position = (rob.x, rob.y)
         position = np.clip(position, [0, 0], [viz.width_m, viz.height_m])  # Keep within bounds
         rob.x, rob.y = position

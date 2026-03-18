@@ -11,18 +11,18 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.backends.backend_agg as agg
 import matplotlib.pyplot as plt
-import numpy as np
 import pygame
 from pygame.locals import *
 import sys
 import random
+import numpy as np
 
 from map import generated_map
 from map import viz
 from map.Lidar import Lidar
 from exploration import robot
 
-WIDTH, HEIGHT = 1000, 1000
+WIDTH, HEIGHT = 600, 600
 
     
 def main():
@@ -32,32 +32,50 @@ def main():
     screen = pygame.display.get_surface()
     pygame.display.set_caption("Robot Planning")
 
+    clock = pygame.time.Clock()
+    velocity = np.array([0.04, 0.04])
+
     grid = np.genfromtxt('src/map/final_square_map.csv', delimiter=',')
     gen_map = generated_map.Generated_Map(viz.width_m, viz.height_m, viz.resolution)
-    lidar = Lidar(grid, world_resolution=viz.resolution)
+    lidar = Lidar(grid, world_resolution=viz.resolution, noise_std=0.1)
     rob = robot.Robot(1, 1, gen_map, lidar)
-    map_surf = viz.viz_surface()
+    interval = 800 # lidar update every 500 ms
+    last_time = pygame.time.get_ticks()
 
     running = True
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-        
-        x, y = random.uniform(1, 9), random.uniform(1, 9)
-        rob.moveTo(x, y)
-        rob.sensor_update()
+            pressed_keys = pygame.key.get_pressed()
+            if pressed_keys[pygame.K_UP]:
+                velocity[1] = 0.04
+            if pressed_keys[pygame.K_DOWN]:
+                velocity[1] = -0.04
+            if pressed_keys[pygame.K_LEFT]:
+                velocity[0] = -0.04
+            if pressed_keys[pygame.K_RIGHT]:
+                velocity[0] = 0.04
+            if pressed_keys[pygame.K_SPACE]:
+                velocity[0] = 0
+                velocity[1] = 0
+        current_time = pygame.time.get_ticks()
+        if current_time - last_time >= interval:
+            rob.sensor_update()
+            last_time = current_time
+
+        rob.move(velocity[0], velocity[1])
+        position = (rob.x, rob.y)
+        position = np.clip(position, [0, 0], [viz.width_m, viz.height_m])  # Keep within bounds
+        rob.x, rob.y = position
 
         screen.fill((30, 30, 30))
-        #base_surf = viz_surface()            # re-render fig -> pygame surface with new elev_im
-        #surf_with_robot = draw_robot(base_surf, rob)
-        #screen.blit(surf_with_robot, (0, 0))
         surf = viz.draw_robot(rob)
         screen.blit(surf, (0, 0))
 
         pygame.display.flip()
-        input("Hit enter for new position: ")
-    
+        clock.tick(30)
+
     pygame.quit()
     sys.exit()
 

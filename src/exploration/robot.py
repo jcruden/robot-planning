@@ -18,25 +18,12 @@ class Robot():
 
         scan = self.lidar.scan(self.x, self.y)
         self.last_scan = scan
-
-        # Update occupancy and elevation maps from the scan
-        #self.generated_map.updateoccupancy(
-        #    self.x,
-        #    self.y,
-        #    0.0,
-        #    scan.thetas,
-        #    scan.ranges,
-        #    self.lidar.range_min,
-        #    self.lidar.range_max,
-        #)
         self.generated_map.updateelevation(self.x, self.y, scan.elevations, scan.hit_points)
     
     def moveTo(self, x, y):
         self.x = x
         self.y = y
-        self.sensor_update()
     
     def move(self, vx, vy):
         self.x += vx
         self.y += vy
-        self.sensor_update()

@@ -67,7 +67,7 @@ ax4 = fig.add_subplot(gs[1,1])  # Add ax3 in a 2x2 grid layout
 ax4.set_xlim(0, width_m)
 ax4.set_ylim(0, height_m)
 ax4.grid(True)
-ax4.set_title("Standard Deviation")
+ax4.set_title("Variance Map")
 _initial_var = np.full_like(grid, 0, dtype=float)
 var_im = ax4.imshow(
     _initial_var,
@@ -75,7 +75,7 @@ var_im = ax4.imshow(
     origin='lower',
     extent=extent,
     vmin=0.0,
-    vmax=0.1,
+    vmax=0.05,
 )
 c4bar = fig.colorbar(var_im, ax=ax4)
 

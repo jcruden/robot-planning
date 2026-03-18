@@ -20,6 +20,9 @@ class Generated_Map():
         self.elevationmean = np.full((int(length/resolution), int(width / resolution)),np.nan)
         self.elevationvar = np.full((int(length/resolution), int(width / resolution)),np.nan)
 
+    def _in_bounds(self, u: int, v: int) -> bool:
+        return (0 <= v < self.logoddsratio.shape[0]) and (0 <= u < self.logoddsratio.shape[1])
+
     def get_elevation(self):
         return self.elevationmean
 
@@ -28,7 +31,7 @@ class Generated_Map():
 
     def set(self, u, v, value):
         # Update only if legal.
-        if (u>=0) and (u<self.width) and (v>=0) and (v<self.height):
+        if self._in_bounds(u, v):
             self.logoddsratio[v,u] = value
         else:
             print("Out of bounds (%d, %d)" % (u,v))
@@ -36,7 +39,7 @@ class Generated_Map():
     # Adjust the log odds ratio value
     def adjust(self, u, v, delta):
         # Update only if legal.
-        if (u>=0) and (u<self.width) and (v>=0) and (v<self.height):
+        if self._in_bounds(u, v):
             self.logoddsratio[v,u] += delta
         else:
             print("Out of bounds (%d, %d)" % (u,v))
@@ -118,12 +121,14 @@ class Generated_Map():
                 self.elevationvar[v, u] = VAR
             else:
                 if lidar_var is None:
-                    lidar_var = VAR
+                    self.elevationmean[v, u] = elev
+                    self.elevationvar[v, u] = 0
                 # Update mean and stdev with Kalman filter
-                old_mean = self.elevationmean[v, u]
-                old_var = self.elevationvar[v, u]
-                k = old_var / (old_var + lidar_var)
-                new_mean = old_mean + k * (elev - old_mean)
-                new_var = (1 - k) * old_var
-                self.elevationmean[v, u] = new_mean
-                self.elevationvar[v, u] = new_var
+                else:
+                    old_mean = self.elevationmean[v, u]
+                    old_var = self.elevationvar[v, u]
+                    k = old_var / (old_var + lidar_var)
+                    new_mean = old_mean + k * (elev - old_mean)
+                    new_var = (1 - k) * old_var
+                    self.elevationmean[v, u] = new_mean
+                    self.elevationvar[v, u] = new_var
