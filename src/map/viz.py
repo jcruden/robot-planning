@@ -15,7 +15,7 @@ width_m = cols * resolution
 height_m = rows * resolution
 
 # 3. Setup the figure
-fig = plt.figure(figsize=(10, 10))
+fig = plt.figure(figsize=(6, 6))
 gs = GridSpec(2, 2, figure=fig)
 
 # --- LEFT: 2D Heatmap To Scale ---
@@ -57,8 +57,8 @@ elev_im = ax3.imshow(
     cmap='viridis',
     origin='lower',
     extent=extent,
-    vmin=-2.0,
-    vmax=2.0,
+    vmin=0.0,
+    vmax=4.0,
 )
 cbar = fig.colorbar(elev_im, ax=ax3)
 
@@ -67,22 +67,22 @@ ax4 = fig.add_subplot(gs[1,1])  # Add ax3 in a 2x2 grid layout
 ax4.set_xlim(0, width_m)
 ax4.set_ylim(0, height_m)
 ax4.grid(True)
-ax4.set_title("Occupancy Grid")
-
-_initial_occ = np.full_like(grid, 0.5, dtype=float)
-occ_im = ax4.imshow(
-    _initial_occ,
-    cmap='gray',
+ax4.set_title("Standard Deviation")
+_initial_var = np.full_like(grid, 0, dtype=float)
+var_im = ax4.imshow(
+    _initial_var,
+    cmap='viridis',
     origin='lower',
     extent=extent,
     vmin=0.0,
-    vmax=1.0,
+    vmax=0.1,
 )
+c4bar = fig.colorbar(var_im, ax=ax4)
 
 plt.tight_layout()
 #plt.show()
 
-def get_points_on_ax(ax, x, y, surface):
+def precompute_axis_params(ax, surface):
     bbox = ax.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
     ax_x, ax_y, ax_width, ax_height = (
         int(bbox.x0 * fig.dpi),
@@ -91,34 +91,43 @@ def get_points_on_ax(ax, x, y, surface):
         int(bbox.height * fig.dpi),
     )
     _, surf_h = surface.get_size()
-    bottom_left = (ax_x,           surf_h - ax_y)
-
+    bottom_left = (ax_x, surf_h - ax_y)
     scale_x = ax_width / width_m
     scale_y = ax_height / height_m
+    return bottom_left, scale_x, scale_y
+
+def viz_surface():
+    canvas = agg.FigureCanvasAgg(fig)
+    canvas.draw()
+    renderer = canvas.get_renderer()
+    raw_data = renderer.buffer_rgba()
+
+    size = canvas.get_width_height()
+    surf = pygame.image.frombuffer(raw_data, size, "RGBA")
+    return surf
+
+# Precompute axis parameters for ax1, ax3, and ax4
+cached_params = {
+    ax1: precompute_axis_params(ax1, viz_surface()),
+    ax3: precompute_axis_params(ax3, viz_surface()),
+    ax4: precompute_axis_params(ax4, viz_surface()),
+}
+
+# Update get_points_on_ax to use cached parameters
+def get_points_on_ax(ax, x, y, surface):
+    params = cached_params[ax]
+    bottom_left, scale_x, scale_y = params
 
     # Convert to px relative to axis
     x_px = bottom_left[0] + int(x * scale_x)
-    y_px = bottom_left[1] -int(y * scale_y)
+    y_px = bottom_left[1] - int(y * scale_y)
 
     return x_px, y_px
 
+# Update draw_rob_ax to use cached parameters
 def draw_rob_ax(ax, rob, surface):
     x, y = get_points_on_ax(ax, rob.x, rob.y, surface)
     pygame.draw.circle(surface, (255, 0, 0), (x, y), 5)
-
-
-def _draw_points_on_ax(ax, points, surface, color=(0, 255, 0), radius=2):
-    if points is None:
-        return
-
-    for hx, hy in points:
-        if np.isnan(hx) or np.isnan(hy):
-            continue
-        
-        px, py = get_points_on_ax(ax, hx, hy, surface)
-
-        pygame.draw.circle(surface, color, (px, py), radius)
-
 
 def update_occupancy(generated_map):
     global occ_im
@@ -137,14 +146,11 @@ def update_elevation(generated_map):
     if generated_map is None or elev_im is None:
         return
 
-    elev = generated_map.elevation
-    #print(np.nanmax(elev))
-    #heatmap = elev / (np.nanmax(elev) - np.nanmin(elev))
-    #probs = 1.0 / (1.0 + np.exp(-elev))
-
+    elev = generated_map.get_elevation()
     elev_im.set_data(elev)
-    #elev_im.set_clim(np.nanmin(elev), np.nanmax(elev))
 
+    var = generated_map.get_elevation_var()
+    var_im.set_data(var)
 
 def draw_robot(rob):
     update_elevation(rob.generated_map)
@@ -153,20 +159,5 @@ def draw_robot(rob):
     draw_rob_ax(ax1, rob, surface)
     draw_rob_ax(ax3, rob, surface)
     draw_rob_ax(ax4, rob, surface)
-
-    # Draw recent lidar scan
-    # scan = getattr(rob, "last_scan", None)
-    # hit_points = scan.hit_points if scan is not None else None
-    #_draw_points_on_ax(ax1, hit_points, surface)
     
     return surface
-
-def viz_surface():
-    canvas = agg.FigureCanvasAgg(fig)
-    canvas.draw()
-    renderer = canvas.get_renderer()
-    raw_data = renderer.buffer_rgba()
-
-    size = canvas.get_width_height()
-    surf = pygame.image.frombuffer(raw_data, size, "RGBA")
-    return surf

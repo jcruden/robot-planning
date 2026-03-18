@@ -71,6 +71,7 @@ class Lidar:
         self._rng = np.random.default_rng(seed)
         self.thetas = np.arange(angle_min, angle_max, self.angle_increment)
         self.deltas = np.arange(vertical_min, vertical_max, self.angle_increment)
+        self.elevation_cache = np.full(ground_truth.shape, np.nan)
 
     
     def scan(self, x: float, y: float, theta: float = 0.0) -> LaserScan:
@@ -130,10 +131,11 @@ class Lidar:
         self.rows, self.cols = ground_truth.shape
         self.world_width  = self.cols * self.world_resolution
         self.world_height = self.rows * self.world_resolution
+        self.elevation_cache = np.full(ground_truth.shape, np.nan)  # Reset elevation cache
 
     
     def _get_elevation(self, x: float, y: float) -> float:
-        """interpolated elevation at world coords (x, y)."""
+        """Interpolated elevation at world coords (x, y), with caching."""
         col = x / self.world_resolution
         row = y / self.world_resolution if self.origin_lower else (self.world_height - y) / self.world_resolution
 
@@ -145,6 +147,10 @@ class Lidar:
         if c0 < 0 or r0 < 0 or c1 >= self.cols or r1 >= self.rows:
             return 0.0
 
+        # Check cache
+        if not np.isnan(self.elevation_cache[r0, c0]):
+            return self.elevation_cache[r0, c0]
+
         dc = col - c0
         dr = row - r0
 
@@ -153,6 +159,8 @@ class Lidar:
              self.ground_truth[r1, c0] * (1 - dc) * dr +
              self.ground_truth[r1, c1] * dc * dr)
 
+        # Cache the result
+        self.elevation_cache[r0, c0] = float(z)
         return float(z)
 
     def _cast_ray(self, x0, y0, z0, azimuth, elevation):

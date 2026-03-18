@@ -29,7 +29,7 @@ class Robot():
         #    self.lidar.range_min,
         #    self.lidar.range_max,
         #)
-        self.generated_map.updateelevation(scan.elevations, scan.hit_points)
+        self.generated_map.updateelevation(self.x, self.y, scan.elevations, scan.hit_points)
     
     def moveTo(self, x, y):
         self.x = x

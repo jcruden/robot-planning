@@ -22,7 +22,7 @@ from map import viz
 from map.Lidar import Lidar
 from exploration import robot
 
-WIDTH, HEIGHT = 1000, 1000
+WIDTH, HEIGHT = 600, 600
 
     
 def main():
@@ -33,7 +33,7 @@ def main():
     pygame.display.set_caption("Robot Planning")
 
     clock = pygame.time.Clock()
-    vx, vy = 0, 0
+    velocity = np.array([0.1, 0.1])
 
     grid = np.genfromtxt('src/map/final_square_map.csv', delimiter=',')
     gen_map = generated_map.Generated_Map(viz.width_m, viz.height_m, viz.resolution)
@@ -48,34 +48,29 @@ def main():
                 running = False
             pressed_keys = pygame.key.get_pressed()
             if pressed_keys[pygame.K_UP]:
-                vy += 0.01
+                velocity[1] += 0.01
             if pressed_keys[pygame.K_DOWN]:
-                vy -= 0.01
+                velocity[1] -= 0.01
             if pressed_keys[pygame.K_LEFT]:
-                vx -= 0.01
+                velocity[0] -= 0.01
             if pressed_keys[pygame.K_RIGHT]:
-                vx += 0.01
+                velocity[0] += 0.01
             if pressed_keys[pygame.K_SPACE]:
-                vx = 0
-                vy = 0
-        
-        rob.move(vx, vy)
-        if (rob.x >= viz.width_m):
-            rob.x = viz.width_m
-        if (rob.x <= 0):
-            rob.x = 0
-        if (rob.y >= viz.height_m):
-            rob.y = viz.height_m
-        if (rob.y <= 0):
-            rob.y = 0
+                velocity[0] = 0
+                velocity[1] = 0
+
+        rob.move(velocity[0], velocity[1])
+        position = (rob.x, rob.y)
+        position = np.clip(position, [0, 0], [viz.width_m, viz.height_m])  # Keep within bounds
+        rob.x, rob.y = position
 
         screen.fill((30, 30, 30))
-        surf = viz.draw_robot(map_surf, rob)
+        surf = viz.draw_robot(rob)
         screen.blit(surf, (0, 0))
 
         pygame.display.flip()
-        clock.tick(60)
-    
+        clock.tick(30)
+
     pygame.quit()
     sys.exit()
 

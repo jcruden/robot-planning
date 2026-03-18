@@ -4,6 +4,7 @@ import numpy as np
 RESOLUTION = 0.05
 LFREE     = -0.03
 LOCCUPIED =  0.3
+VAR = 0.1
 
 class Generated_Map():
     #################
@@ -16,7 +17,14 @@ class Generated_Map():
         self.resolution = resolution
         self.logoddsratio = np.zeros((int(length / resolution), int(width / resolution)))
 
-        self.elevation = np.full((int(length/resolution), int(width / resolution)),np.nan)
+        self.elevationmean = np.full((int(length/resolution), int(width / resolution)),np.nan)
+        self.elevationvar = np.full((int(length/resolution), int(width / resolution)),np.nan)
+
+    def get_elevation(self):
+        return self.elevationmean
+
+    def get_elevation_var(self):
+        return self.elevationvar
 
     def set(self, u, v, value):
         # Update only if legal.
@@ -78,8 +86,9 @@ class Generated_Map():
             else:
                 self.adjust(int(ue), int(ve), LOCCUPIED)
 
+    def updateelevation(self, x, y, elevations, hit_points, lidar_var = None):
+        max_heights = {}
 
-    def updateelevation(self, elevations, hit_points):
         for i in range(len(elevations)):
             elev = elevations[i]
             if np.isnan(elev):
@@ -94,11 +103,27 @@ class Generated_Map():
             v = int(hy / RESOLUTION)
 
             # Bounds check
-            if u < 0 or u >= self.elevation.shape[1]:
+            if u < 0 or u >= self.elevationmean.shape[1]:
                 continue
-            if v < 0 or v >= self.elevation.shape[0]:
+            if v < 0 or v >= self.elevationmean.shape[0]:
                 continue
 
-            # Keep the highest elevation detected at this cell
-            if np.isnan(self.elevation[v, u]) or elev > self.elevation[v, u]:
-                self.elevation[v, u] = elev
+            # Add highest elev for cell
+            if (u, v) not in max_heights or elev > max_heights[(u, v)]:
+                max_heights[(u, v)] = elev
+        
+        for (u, v), elev in max_heights.items():
+            if np.isnan(self.elevationmean[v, u]):
+                self.elevationmean[v, u] = elev
+                self.elevationvar[v, u] = VAR
+            else:
+                if lidar_var is None:
+                    lidar_var = VAR
+                # Update mean and stdev with Kalman filter
+                old_mean = self.elevationmean[v, u]
+                old_var = self.elevationvar[v, u]
+                k = old_var / (old_var + lidar_var)
+                new_mean = old_mean + k * (elev - old_mean)
+                new_var = (1 - k) * old_var
+                self.elevationmean[v, u] = new_mean
+                self.elevationvar[v, u] = new_var
