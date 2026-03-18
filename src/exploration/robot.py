@@ -63,7 +63,7 @@ class Robot():
             for u, v in zip(u_indices[frontiers_mask], v_indices[frontiers_mask]):
                 # Calculate information gain as the number of unknown neighbors
                 info_gain = 0
-                for ddv, ddu in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                for ddv, ddu in [(-2, 0), (2, 0), (0, -2), (0, 2)]:
                     nu, nv = u + ddu, v + ddv
                     if 0 <= nu < cols and 0 <= nv < rows and nan_mask[nv, nu]:
                         info_gain += 1
@@ -80,7 +80,7 @@ class Robot():
         
         # Find closest frontier
         #closest_frontier = min(frontiers, key=lambda f: np.sqrt((f[0] - robot_u)**2 + (f[1] - robot_v)**2))
-        closest_frontier = max(frontiers, key=lambda f: (f[2] / f[3]))
+        closest_frontier = max(frontiers, key=lambda f: (f[2] / (1 + f[3])))
         return closest_frontier
     
     def set_path(self):

@@ -26,9 +26,9 @@ def main():
     grid = np.genfromtxt('src/map/final_square_map.csv', delimiter=',')
     gen_map = generated_map.Generated_Map(viz.width_m, viz.height_m, viz.resolution)
     gen_map2 = generated_map.Generated_Map(viz.width_m, viz.height_m, viz.resolution)
-    lidar = Lidar(grid, world_resolution=viz.resolution, noise_std=0.1)
+    lidar = Lidar(grid, world_resolution=viz.resolution, noise_std=0)
     rob = robot.Robot(1, 1, gen_map, lidar, grid)
-    lidar2 = Lidar(grid, world_resolution=viz.resolution, noise_std=0.5)
+    lidar2 = Lidar(grid, world_resolution=viz.resolution, noise_std=0.1)
     rob2 = robot.Robot(1, 1, gen_map2, lidar2, grid, random=False)
     interval = 20
     last_time = pygame.time.get_ticks()
