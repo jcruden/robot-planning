@@ -11,13 +11,12 @@
 import bisect
 import heapq
 
-from math       import inf
+from math       import inf, sqrt
 
 #
 #   Define the CONFIGURATION
 #
 VARIABLECOST = False    # False (P1, P3) or True (P2)
-TOGOFACTOR   = 0        # 0 (Dijkstra) or 1, 2, 10 (A*)
 
 
 #
@@ -90,26 +89,18 @@ class Node:
 #   node graph, transfering nodes from air (not seen) to leaf (seen,
 #   but not done) to trunk (done).
 #
-# Compute a delta cost between two nodes.  Use the Manhattan distance
-# or the location-dependent cost.
+# Compute a delta cost between two nodes.
 def deltacost(node1, node2):
-    if VARIABLECOST:
-        c = (9*(1 + abs((node1.col+node2.col)/2-9)) * abs(node1.row-node2.row) +
-             5*(1 + abs((node1.row+node2.row)/2-5)) * abs(node1.col-node2.col))
-    else:
-        c = (abs(node1.row-node2.row) +
-             abs(node1.col-node2.col))
-    return c
+    return sqrt((node1.row-node2.row)**2 + (node1.col-node2.col)**2)
 
 # Actual cost from node to it's neighbor.
 def costtoneighbor(node, neighbor, elevation_map):
-    base_cost = deltacost(node, neighbor)
     elevation_cost = abs(elevation_map[neighbor.row, neighbor.col] - elevation_map[node.row, node.col])
-    return base_cost + 10 * elevation_cost
+    return sqrt((node.row-neighbor.row)**2 + (node.col-neighbor.col)**2 + elevation_cost**2)
 
 # Estimate the cost to go from state to goal.
 def costtogoest(node, goal):
-    return  TOGOFACTOR * deltacost(node, goal)
+    return deltacost(node, goal)
 
 # Run the planner.
 def planner(start, goal, elevation_map, generated_map, show=None):
