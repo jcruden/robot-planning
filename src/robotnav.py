@@ -24,7 +24,7 @@ from exploration import robot
 from exploration.astar import planner
 
 WIDTH, HEIGHT = 600, 600
-
+        
 def find_closest_frontier(robot, generated_map):
     rows, cols = generated_map.elevationmean.shape
     frontiers = []
@@ -37,7 +37,7 @@ def find_closest_frontier(robot, generated_map):
                 continue
             if np.isnan(generated_map.elevationmean[v, u]):
                 # Check if adjacent cells are free
-                for dv, du in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                for dv, du in [(-1, 0), (1, 0), (0, -1), (0, 1), (-2, 0), (2, 0), (0, -2), (0, 2)]:
                     nv, nu = v + dv, u + du
                     if generated_map._in_bounds(nu, nv) and not np.isnan(generated_map.elevationmean[nv, nu]):
                         frontiers.append((u, v))
@@ -45,10 +45,13 @@ def find_closest_frontier(robot, generated_map):
 
     if not frontiers:
         return None
-
+    # Return random frontier
+    random_frontier = random.choice(frontiers)
+    return random_frontier
+    
     # Find closest frontier to robot
-    closest_frontier = min(frontiers, key=lambda f: abs(f[0] - robot_u) + abs(f[1] - robot_v))
-    return closest_frontier
+    #closest_frontier = min(frontiers, key=lambda f: abs(f[0] - robot_u) + abs(f[1] - robot_v))
+    #return closest_frontier
 
 def main():
     pygame.init()
@@ -64,10 +67,11 @@ def main():
     gen_map = generated_map.Generated_Map(viz.width_m, viz.height_m, viz.resolution)
     lidar = Lidar(grid, world_resolution=viz.resolution, noise_std=0.1)
     rob = robot.Robot(1, 1, gen_map, lidar)
-    interval = 50 # lidar update every 50 ms
+    interval = 20 # lidar update every 50 ms
     last_time = pygame.time.get_ticks()
     path = None
     curr = 0
+    rob.sensor_update()
 
     running = True
     while running:

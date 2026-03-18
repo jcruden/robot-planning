@@ -9,6 +9,7 @@
 '''
 
 import bisect
+import heapq
 
 from math       import inf
 
@@ -104,7 +105,7 @@ def deltacost(node1, node2):
 def costtoneighbor(node, neighbor, elevation_map):
     base_cost = deltacost(node, neighbor)
     elevation_cost = abs(elevation_map[neighbor.row, neighbor.col] - elevation_map[node.row, node.col])
-    return base_cost + elevation_cost
+    return base_cost + 10 * elevation_cost
 
 # Estimate the cost to go from state to goal.
 def costtogoest(node, goal):
@@ -129,16 +130,17 @@ def planner(start, goal, elevation_map, generated_map, show=None):
     start_node = nodes[start[1]][start[0]]
     goal_node = nodes[goal[1]][goal[0]]
 
-    # Use the start node to initialize the on-deck queue
+    # Use the start node to initialize the on-deck priority queue
     start_node.seen = True
     start_node.creach = 0
     start_node.cost = 0 + costtogoest(start_node, goal_node)
     start_node.parent = None
-    onDeck = [start_node]
+    onDeck = []
+    heapq.heappush(onDeck, (start_node.cost, start_node))
 
     while onDeck:
-        # Grab the next state (first on the sorted on-deck list)
-        node = onDeck.pop(0)
+        # Grab the next state (smallest cost from the priority queue)
+        _, node = heapq.heappop(onDeck)
         node.done = True
 
         if node == goal_node:
@@ -154,13 +156,15 @@ def planner(start, goal, elevation_map, generated_map, show=None):
                 if neighbor.creach <= creach:
                     continue
                 else:
-                    onDeck.remove(neighbor)
+                    # Remove the neighbor from the priority queue
+                    onDeck = [(c, n) for c, n in onDeck if n != neighbor]
+                    heapq.heapify(onDeck)
 
             neighbor.seen = True
             neighbor.creach = creach
             neighbor.cost = creach + costtogoest(neighbor, goal_node)
             neighbor.parent = node
-            bisect.insort(onDeck, neighbor)
+            heapq.heappush(onDeck, (neighbor.cost, neighbor))
 
     path = []
     current = goal_node
@@ -169,81 +173,3 @@ def planner(start, goal, elevation_map, generated_map, show=None):
         current = current.parent
     path.insert(0, (start_node.col, start_node.row))
     return path
-
-
-######################################################################
-#
-#  Main Code
-#
-if __name__== "__main__":
-
-    ###########  INITIALIZE - CREATE THE GRAPH  ###########
-    # Grab the dimensions.
-    rows = len(grid)
-    cols = max([len(line) for line in grid])
-
-    # Set up the visual grid.
-    visual = VisualGrid(rows, cols)
-
-    # Parse the grid to set up the nodes list.
-    nodes  = []
-    for row in range(rows):
-        for col in range(cols):
-            # Create a node per space, except only color walls black.
-            if grid[row][col] == '#':
-                visual.color(row, col, BLACK)
-            else:
-                nodes.append(Node(row, col))
-
-    # Create the neighbors, being the edges between the nodes.
-    for node in nodes:
-        for (dr, dc) in [(-1,0), (1,0), (0,-1), (0,1)]:
-            others = [n for n in nodes
-                      if (n.row,n.col) == (node.row+dr,node.col+dc)]
-            if len(others) > 0:
-                node.neighbors.append(others[0])
-
-    # Grab/mark the start/goal.
-    start = [n for n in nodes if grid[n.row][n.col] in 'Ss'][0]
-    goal  = [n for n in nodes if grid[n.row][n.col] in 'Gg'][0]
-    visual.write(start.row, start.col, 'S')
-    visual.write(goal.row,  goal.col,  'G')
-    visual.show(wait="Hit return to start")
-
-
-    #########################  RUN  ########################
-    # Create a function to show each step.
-    def show(wait=0.005):
-        # Update the grid for all nodes.
-        for node in nodes:
-            # Choose the appropriate color.
-            if   node.done: visual.color(node.row, node.col, BARK)
-            elif node.seen: visual.color(node.row, node.col, GREEN)
-            else:           visual.color(node.row, node.col, SKY)
-        # Show.
-        visual.show(wait)
-
-    # Run.
-    path = planner(start, goal, show)
-
-
-    #######################  REPORT  #######################
-    # Check the number of nodes.
-    unknown   = len([n for n in nodes if not n.seen])
-    processed = len([n for n in nodes if n.done])
-    ondeck    = len(nodes) - unknown - processed
-    print("Solution cost %f" % goal.cost)
-    print("%3d states fully processed" % processed)
-    print("%3d states still pending"   % ondeck)
-    print("%3d states never reached"   % unknown)
-
-    # Show the path in red.
-    if not path:
-        print("UNABLE TO FIND A PATH")
-    else:
-        print("Marking the path")
-        for node in path:
-            visual.color(node.row, node.col, RED)
-        visual.show()
-
-    input("Hit return to end")

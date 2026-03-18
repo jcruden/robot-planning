@@ -128,6 +128,9 @@ def get_points_on_ax(ax, x, y, surface):
 def draw_rob_ax(ax, rob, surface):
     x, y = get_points_on_ax(ax, rob.x, rob.y, surface)
     pygame.draw.circle(surface, (255, 0, 0), (x, y), 5)
+    if rob.destination:
+        dest_x, dest_y = get_points_on_ax(ax, rob.destination[0], rob.destination[1], surface)
+        pygame.draw.circle(surface, (0, 0, 0), (dest_x, dest_y), 3)
 
 def update_occupancy(generated_map):
     global occ_im
