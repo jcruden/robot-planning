@@ -19,7 +19,7 @@ import numpy as np
 
 from map import generated_map
 from map import viz
-from map.Lidar import Lidar
+from map.improvedLidar import Lidar
 from exploration import robot
 
 WIDTH, HEIGHT = 600, 600
