@@ -11,6 +11,7 @@ class Robot():
         self.generated_map = generated_map
         self.lidar = lidar
         self.last_scan = None
+        self.destination = None
 
     def sensor_update(self):
         if self.lidar is None or self.generated_map is None:
@@ -27,3 +28,11 @@ class Robot():
     def move(self, vx, vy):
         self.x += vx
         self.y += vy
+    
+    def atDestination(self):
+        return np.isclose(self.x, self.destination[0]) and np.isclose(self.y, self.destination[1])
+    
+    def moveTowardsDestination(self):
+        if not self.atDestination():
+            self.x += self.velocity[0]
+            self.y += self.velocity[1]

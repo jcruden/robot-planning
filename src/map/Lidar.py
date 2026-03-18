@@ -59,12 +59,12 @@ class Lidar:
 
         self.angle_min       = angle_min
         self.angle_max       = angle_max
-        self.angle_increment = 0.04 #0.05 #2 * pi / (360 * .05 / grid_resolution)
+        self.angle_increment = 2 * pi / (360 * .05 / grid_resolution)
         self.vertical_min    = vertical_min
         self.vertical_max    = vertical_max
         self.range_min       = range_min
         self.range_max       = range_max
-        self.ray_step        = ray_step if ray_step else grid_resolution #grid_resolution/2
+        self.ray_step        = ray_step if ray_step else grid_resolution/2
         self.noise_std       = noise_std
         self.origin_lower    = origin_lower
 

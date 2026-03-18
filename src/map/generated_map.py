@@ -5,6 +5,7 @@ RESOLUTION = 0.05
 LFREE     = -0.03
 LOCCUPIED =  0.3
 VAR = 0.1
+MAX_SLOPE = 0.3
 
 class Generated_Map():
     #################
@@ -88,6 +89,18 @@ class Generated_Map():
                 self.adjust(int(ue), int(ve), LFREE)
             else:
                 self.adjust(int(ue), int(ve), LOCCUPIED)
+
+    def slope(self, x, y):
+        slopes = []
+        for (dx, dy) in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+            nx = x + dx
+            ny = y + dy
+            if self._in_bounds(nx, ny):
+                slopes.append(self.elevationmean[ny, nx] - self.elevationmean[y, x])
+        return max(slopes) if slopes else 0
+    
+    def legalslope(self, x, y):
+        return self.slope(x, y) <= 1
 
     def updateelevation(self, x, y, elevations, hit_points, lidar_var = None):
         max_heights = {}
