@@ -1,12 +1,3 @@
-'''prmtriangles_updatedsolution.py
-
-   This is the updated PRM solution code for the 2D triangular problem
-   with post-processing and alternate connections.
-
-   Use the PRM algorithm to find a path around polygonal obstacles.
-
-'''
-
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.backends.backend_agg as agg
@@ -14,7 +5,6 @@ import matplotlib.pyplot as plt
 import pygame
 from pygame.locals import *
 import sys
-import random
 import numpy as np
 
 from map import generated_map
@@ -32,19 +22,16 @@ def main():
     pygame.display.set_caption("Robot Planning")
 
     clock = pygame.time.Clock()
-    velocity = np.array([0.04, 0.04])
 
     grid = np.genfromtxt('src/map/final_square_map.csv', delimiter=',')
     gen_map = generated_map.Generated_Map(viz.width_m, viz.height_m, viz.resolution)
     gen_map2 = generated_map.Generated_Map(viz.width_m, viz.height_m, viz.resolution)
     lidar = Lidar(grid, world_resolution=viz.resolution, noise_std=0.1)
-    rob = robot.Robot(1, 1, gen_map, lidar)
-    lidar2 = Lidar(grid, world_resolution=viz.resolution, noise_std=0.1)
-    rob2 = robot.Robot(1, 1, gen_map2, lidar2, random=True)
-    interval = 20 # lidar update every 50 ms
+    rob = robot.Robot(1, 1, gen_map, lidar, grid)
+    lidar2 = Lidar(grid, world_resolution=viz.resolution, noise_std=0.5)
+    rob2 = robot.Robot(1, 1, gen_map2, lidar2, grid, random=False)
+    interval = 20
     last_time = pygame.time.get_ticks()
-    path = None
-    curr = 0
     rob.sensor_update()
     rob2.sensor_update()
 
@@ -73,8 +60,8 @@ def main():
         pygame.display.flip()
         clock.tick(30)
     
-    print("Robot 1 explored: ", int(100 * np.sum(~np.isnan(rob.generated_map.elevationmean)) / (viz.width_m / viz.resolution * viz.height_m / viz.resolution)), " % of map")
-    print("Robot 2 explored: ", int(100 * np.sum(~np.isnan(rob2.generated_map.elevationmean)) / (viz.width_m / viz.resolution * viz.height_m / viz.resolution)), " % of map")
+    print("Robot 1 with lidar noise ", lidar.noise_std, ": ", int(100 * rob.calculate_score()), " / 100")
+    print("Robot 2 lidar noise ",lidar2.noise_std, ": ", int(100 * rob2.calculate_score()), " / 100")
     input("Hit enter to end:")
 
     pygame.quit()

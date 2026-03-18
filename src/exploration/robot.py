@@ -6,7 +6,7 @@ import random
 
 class Robot():
     #################
-    def __init__(self, x, y, generated_map, lidar, random=False):
+    def __init__(self, x, y, generated_map, lidar, grid, random=False):
         # Define
         self.x = x
         self.y = y
@@ -17,7 +17,8 @@ class Robot():
         self.path = None
         self.curr = 0
         self.random = random
-        self.fuel = 3
+        self.fuel = 15
+        self.grid = grid # ground truth map for fuel
 
     def sensor_update(self):
         if self.lidar is None or self.generated_map is None:
@@ -49,7 +50,7 @@ class Robot():
         distances = np.sqrt((u_indices - robot_u)**2 + (v_indices - robot_v)**2)
 
         # No cells too close to the robot
-        too_close_mask = distances < 5
+        too_close_mask = distances < 10
         nan_mask[too_close_mask] = False
 
         # Find frontiers
@@ -72,8 +73,8 @@ class Robot():
         if not frontiers:
             return None
         
-        if self.random:
         # Return random frontier
+        if self.random:
             random_frontier = random.choice(frontiers)
             return random_frontier
         
@@ -100,9 +101,16 @@ class Robot():
         if self.curr < len(self.path):
             next_step = self.path[self.curr]
             next_x, next_y = next_step[0] * self.generated_map.resolution, next_step[1] * self.generated_map.resolution
-            self.fuel -= max(0, (self.generated_map.elevationmean[next_step[1], next_step[0]] - self.generated_map.elevationmean[int(self.y / self.generated_map.resolution), int(self.x / self.generated_map.resolution)]))
+            self.fuel -= max(0, (self.grid[next_step[1], next_step[0]] - self.grid[int(self.y / self.generated_map.resolution), int(self.x / self.generated_map.resolution)]))
             self.moveTo(next_x, next_y)
             self.curr += 1
         else:
             self.path = None
             self.curr = 0
+    
+    def calculate_score(self):
+        explored = np.sum(~np.isnan(self.generated_map.elevationmean))
+        total = self.generated_map.elevationmean.size
+        coverage = explored / total
+        rmse = np.sqrt(np.nanmean((self.generated_map.elevationmean - self.grid)**2))
+        return coverage * (1 - rmse)

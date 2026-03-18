@@ -1,34 +1,5 @@
-'''gridplanner_solution.py
-
-   This is the solution code for the grid planner, using Dijstra's and
-   the Astar algorithms.  Simply change the variable cost flag and
-   cost-to-go factor below.
-
-   This finds a path in a simple 2D grid.
-
-'''
-
-import bisect
 import heapq
-
 from math       import inf, sqrt
-
-#
-#   Define the CONFIGURATION
-#
-VARIABLECOST = False    # False (P1, P3) or True (P2)
-
-
-#
-#   Colors
-#
-WHITE  = [1.000, 1.000, 1.000]
-BLACK  = [0.000, 0.000, 0.000]
-RED    = [1.000, 0.000, 0.000]
-BARK   = [0.325, 0.192, 0.094]  # bark brown
-GREEN  = [0.133, 0.545, 0.133]  # forrest green
-SKY    = [0.816, 0.925, 0.992]  # light blue
-
 
 #
 #   Node Class
@@ -62,11 +33,6 @@ class Node:
         self.seen = False
         self.done = False
 
-
-    # Define the Manhattan distance to another node.
-    def distance(self, other):
-        return abs(self.row - other.row) + abs(self.col - other.col)
-
     # Define the "less-than" to enable sorting by cost.
     def __lt__(self, other):
         return self.cost < other.cost
@@ -91,14 +57,14 @@ class Node:
 #
 # Compute a delta cost between two nodes.
 def deltacost(node1, node2):
-    return sqrt((node1.row-node2.row)**2 + (node1.col-node2.col)**2)
+    return abs(node1.row-node2.row) + abs(node1.col-node2.col)
 
 # Actual cost from node to it's neighbor.
 def costtoneighbor(node, neighbor, elevation_map):
     elevation_cost = abs(elevation_map[neighbor.row, neighbor.col] - elevation_map[node.row, node.col])
     if (elevation_cost < 0):
-        return sqrt((node.row-neighbor.row)**2 + (node.col-neighbor.col)**2) # no elev cost for downhill
-    return sqrt((node.row-neighbor.row)**2 + (node.col-neighbor.col)**2 + elevation_cost**2)
+        return 1 # no elev cost for downhill
+    return sqrt(1 + elevation_cost**2)
 
 # Estimate the cost to go from state to goal.
 def costtogoest(node, goal):
