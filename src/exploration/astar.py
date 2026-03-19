@@ -1,5 +1,5 @@
 import heapq
-from math       import inf, sqrt
+from math       import inf, sqrt, isfinite
 
 #
 #   Node Class
@@ -59,12 +59,27 @@ class Node:
 def deltacost(node1, node2):
     return abs(node1.row-node2.row) + abs(node1.col-node2.col)
 
+# Compute the absolute slope between two neighboring cells.
+def slope_between(node, neighbor, elevation_map, resolution):
+    dz = elevation_map[neighbor.row, neighbor.col] - elevation_map[node.row, node.col]
+    return abs(dz) / resolution
+
+# Check whether the robot can legally move between two neighboring cells.
+def traversable(node, neighbor, elevation_map, resolution, max_slope):
+    src_height = elevation_map[node.row, node.col]
+    dst_height = elevation_map[neighbor.row, neighbor.col]
+
+    if not (isfinite(src_height) and isfinite(dst_height)):
+        return True
+
+    return slope_between(node, neighbor, elevation_map, resolution) <= max_slope
+
 # Actual cost from node to it's neighbor.
 def costtoneighbor(node, neighbor, elevation_map):
-    elevation_cost = elevation_map[neighbor.row, neighbor.col] - elevation_map[node.row, node.col]
+    elevation_cost = abs(elevation_map[neighbor.row, neighbor.col] - elevation_map[node.row, node.col])
     if (elevation_cost < 0):
         return 1 # no elev cost for downhill
-    return sqrt(1 + (10 * elevation_cost)**2) # multiple elev by 10 to scale it to grid res and return slope
+    return sqrt(1 + elevation_cost**2)
 
 # Estimate the cost to go from state to goal.
 def costtogoest(node, goal):
@@ -72,6 +87,11 @@ def costtogoest(node, goal):
 
 # Run the planner.
 def planner(start, goal, elevation_map, generated_map, show=None):
+    resolution = getattr(generated_map, "resolution", 1.0)
+    max_slope = getattr(generated_map, "MAX_SLOPE", None)
+    if max_slope is None:
+        max_slope = getattr(generated_map, "max_slope", 10.0)
+
     # Create nodes for the grid
     rows, cols = elevation_map.shape
     nodes = [[Node(row, col) for col in range(cols)] for row in range(rows)]
@@ -108,6 +128,8 @@ def planner(start, goal, elevation_map, generated_map, show=None):
         for neighbor in node.neighbors:
             if neighbor.done:
                 continue
+            if not traversable(node, neighbor, elevation_map, resolution, max_slope):
+                continue
 
             creach = node.creach + costtoneighbor(node, neighbor, elevation_map)
 
@@ -124,6 +146,9 @@ def planner(start, goal, elevation_map, generated_map, show=None):
             neighbor.cost = creach + costtogoest(neighbor, goal_node)
             neighbor.parent = node
             heapq.heappush(onDeck, (neighbor.cost, neighbor))
+
+    if start_node != goal_node and goal_node.parent is None:
+        return []
 
     path = []
     current = goal_node
