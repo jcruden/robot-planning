@@ -76,10 +76,10 @@ def traversable(node, neighbor, elevation_map, resolution, max_slope):
 
 # Actual cost from node to it's neighbor.
 def costtoneighbor(node, neighbor, elevation_map):
-    elevation_cost = abs(elevation_map[neighbor.row, neighbor.col] - elevation_map[node.row, node.col])
+    elevation_cost = (elevation_map[neighbor.row, neighbor.col] - elevation_map[node.row, node.col])
     if (elevation_cost < 0):
         return 1 # no elev cost for downhill
-    return sqrt(1 + elevation_cost**2)
+    return sqrt(1 + (20 * elevation_cost)**2)
 
 # Estimate the cost to go from state to goal.
 def costtogoest(node, goal):
@@ -90,7 +90,7 @@ def planner(start, goal, elevation_map, generated_map, show=None):
     resolution = getattr(generated_map, "resolution", 1.0)
     max_slope = getattr(generated_map, "MAX_SLOPE", None)
     if max_slope is None:
-        max_slope = getattr(generated_map, "max_slope", 10.0)
+        max_slope = getattr(generated_map, "max_slope", 3)
 
     # Create nodes for the grid
     rows, cols = elevation_map.shape
