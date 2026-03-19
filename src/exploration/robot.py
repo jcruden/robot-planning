@@ -6,7 +6,7 @@ import random
 
 class Robot():
     #################
-    def __init__(self, x, y, generated_map, lidar, grid, random=False):
+    def __init__(self, x, y, generated_map, lidar, grid, random=False, weighted_elevation=False, weighted_info=False):
         # Define
         self.x = x
         self.y = y
@@ -19,6 +19,9 @@ class Robot():
         self.random = random
         self.fuel = 10
         self.grid = grid # ground truth map for fuel
+        self.weighted_info = weighted_info
+        self.weighted_elevation = weighted_elevation
+
 
     def sensor_update(self):
         if self.lidar is None or self.generated_map is None:
@@ -36,7 +39,7 @@ class Robot():
         self.x += vx
         self.y += vy
     
-    def find_closest_frontier(self):
+    def find_frontier(self):
         rows, cols = self.generated_map.elevationmean.shape
         robot_u = int(self.x / self.generated_map.resolution)
         robot_v = int(self.y / self.generated_map.resolution)
@@ -74,21 +77,49 @@ class Robot():
             return None
 
         frontiers = [f for f in frontiers if f[3] > 5]
+
+        if self.weighted_info:
+            min_info = min(f[2] for f in frontiers)
+            max_info = max(f[2] for f in frontiers)
+            min_path = min(f[3] for f in frontiers)
+            max_path = max(f[3] for f in frontiers)
+            info_den = (max_info - min_info) if (max_info - min_info) != 0 else 1.0
+            path_den = (max_path - min_path) if (max_path - min_path) != 0 else 1.0
+
+            def score_frontier(f):
+                norm_info = (f[2] - min_info) / info_den
+                norm_path = (f[3] - min_path) / path_den
+                return 2 * norm_info - 1 * norm_path
+            
+            return max(frontiers, key=score_frontier)
         
         # Return random frontier
         if self.random:
             random_frontier = random.choice(frontiers)
             return random_frontier
+
+        if self.weighted_elevation:
+            elevation_min = np.nanmin(self.generated_map.elevationmean)
+            elevation_max = np.nanmax(self.generated_map.elevationmean)
+            elevation_den = (elevation_max - elevation_min) if (elevation_max - elevation_min) != 0 else 1.0
+
+            def weighted_elevation_score(f):
+                u, v = f[0], f[1]
+                norm_info = (f[2] - min_info) / info_den
+                norm_path = (f[3] - min_path) / path_den
+                elev = self.generated_map.elevationmean[v, u] - self.generated_map.elevationmean[robot_v, robot_u]
+                norm_elev = (elev - elevation_min) / elevation_den
+                return 5 * norm_info - 1 * norm_elev
+
+            return max(frontiers, key=weighted_elevation_score)
         
-        # Find closest frontier
-        #closest_frontier = min(frontiers, key=lambda f: np.sqrt((f[0] - robot_u)**2 + (f[1] - robot_v)**2))
-        #closest_frontier = max(frontiers, key=lambda f: (f[2] / (1 + f[3])))
-        closest_frontier = max(frontiers, key=lambda f: (f[2], -f[3]))
-        return closest_frontier
+        # Find frontier with max info
+        best_frontier = max(frontiers, key=lambda f: (f[2], -f[3]))
+        return best_frontier
     
     def set_path(self):
         # Find the closest frontier
-        frontier = self.find_closest_frontier()
+        frontier = self.find_frontier()
         # Convert frontier to world coordinates
         fx, fy = frontier[0] * self.generated_map.resolution, frontier[1] * self.generated_map.resolution
         self.destination = (fx, fy)

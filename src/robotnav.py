@@ -27,8 +27,8 @@ def main():
     gen_map = generated_map.Generated_Map(viz.width_m, viz.height_m, viz.resolution)
     gen_map2 = generated_map.Generated_Map(viz.width_m, viz.height_m, viz.resolution)
     lidar = Lidar(grid, world_resolution=viz.resolution, noise_std=0.2)
-    rob = robot.Robot(1, 1, gen_map, lidar, grid, random = False)
-    lidar2 = Lidar(grid, world_resolution=viz.resolution, noise_std=0.5)
+    rob = robot.Robot(1, 1, gen_map, lidar, grid, random = True)
+    lidar2 = Lidar(grid, world_resolution=viz.resolution, noise_std=0.2)
     rob2 = robot.Robot(1, 1, gen_map2, lidar2, grid, random=False)
     interval = 20
     last_time = pygame.time.get_ticks()
