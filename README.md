@@ -1,6 +1,6 @@
 # robot-planning
 
-Simple robot exploration + planning demos on a 2.5D elevation grid (pygame + numpy). Includes a simulated 3D LiDAR, frontier selection, and an A* path planner that accounts for uphill cost.
+ME133 Project. Robot exploration + planning demos on a 2.5D elevation grid (pygame + numpy). Includes a simulated 3D LiDAR, frontier selection, and an A* path planner that accounts for uphill cost and avoids craters. Voxel diagram of grid as well.
 
 ## Run
 

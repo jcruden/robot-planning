@@ -90,7 +90,7 @@ def planner(start, goal, elevation_map, generated_map, show=None):
     resolution = getattr(generated_map, "resolution", 1.0)
     max_slope = getattr(generated_map, "MAX_SLOPE", None)
     if max_slope is None:
-        max_slope = getattr(generated_map, "max_slope", 3)
+        max_slope = getattr(generated_map, "max_slope", 10)
 
     # Create nodes for the grid
     rows, cols = elevation_map.shape
