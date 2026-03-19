@@ -18,13 +18,8 @@ class LaserScan:
     deltas:          np.ndarray   
     elevations:      np.ndarray                                           
     hit_points:      np.ndarray
-    free:            np.ndarray # Changed from set to a NumPy array of unique (x,y,z) coordinates
-
-
-# -----------------------------------------------------------------------------
-# JIT-Compiled Core Functions (Must be outside the class to avoid 'self')
-# -----------------------------------------------------------------------------
-
+    free:            np.ndarray 
+    
 @njit(fastmath=True)
 def _get_elevation_fast(x, y, ground_truth, world_res, cols, rows, world_height, origin_lower):
     """JIT-compiled bilinear interpolation."""
@@ -142,7 +137,7 @@ def _sweep_fast(
             else:
                 # NO HIT: The ray went into the sky or off the map.
                 measured_range = range_max # We still march free space up to max range
-                ranges[idx] = np.inf       # Standard ROS representation for "no return"
+                ranges[idx] = np.inf
                 hit_points[idx, 0] = np.nan
                 hit_points[idx, 1] = np.nan
                 elevations[idx] = np.nan
@@ -150,7 +145,6 @@ def _sweep_fast(
             # ==========================================
             # PHASE 3: Generate Perceived Free Space
             # ==========================================
-            # (This phase remains exactly the same as before)
             perceived_steps = int(measured_range / ray_step)
             
             for s in range(start_step, perceived_steps):
@@ -183,8 +177,8 @@ class Lidar:
         angle_min:        float = 0.0,
         angle_max:        float = 2 * pi,
         angle_increment:  float = None,
-        vertical_min:     float = -pi,
-        vertical_max:     float = pi,
+        vertical_min:     float = -pi/3,
+        vertical_max:     float = pi/6,
         range_min:        float = 0.12,
         range_max:        float = 2.5,
         ray_step:         float = None,
@@ -227,13 +221,13 @@ class Lidar:
             self.cols, self.rows, self.world_height, self.origin_lower
         ) + self.robot_height
 
-        # Run the blazing fast JIT compiled sweep (now handling noise internally)
+        # Run JIT compiled sweep
         ranges, elevations, hit_points, raw_free = _sweep_fast(
             x, y, robot_z, theta, self.thetas, self.deltas,
             self.ground_truth, self.world_resolution, self.cols, self.rows,
             self.world_width, self.world_height, self.max_elev, self.origin_lower,
             self.grid_resolution, self.range_min, self.range_max, self.ray_step, 
-            self.noise_std # Passed in here
+            self.noise_std
         )
         
 
