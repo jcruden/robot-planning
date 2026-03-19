@@ -17,7 +17,7 @@ class Robot():
         self.path = None
         self.curr = 0
         self.random = random
-        self.fuel = 15
+        self.fuel = 10
         self.grid = grid # ground truth map for fuel
 
     def sensor_update(self):
@@ -116,4 +116,5 @@ class Robot():
         total = self.generated_map.elevationmean.size
         coverage = explored / total
         rmse = np.sqrt(np.nanmean((self.generated_map.elevationmean - self.grid)**2))
-        return coverage * (1 - rmse)
+        normalized_rmse = rmse / (np.nanstd(self.generated_map.elevationmean))
+        return coverage * (1 - normalized_rmse), normalized_rmse

@@ -131,7 +131,7 @@ class Generated_Map():
         for (u, v), elev in max_heights.items():
             if np.isnan(self.elevationmean[v, u]):
                 self.elevationmean[v, u] = elev
-                self.elevationvar[v, u] = VAR
+                self.elevationvar[v, u] = lidar_var if lidar_var is not None else VAR
             else:
                 if lidar_var is None:
                     self.elevationmean[v, u] = elev
