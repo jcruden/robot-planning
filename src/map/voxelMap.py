@@ -3,11 +3,11 @@ import math
 from map.improvedLidar import LaserScan
 
 L_FREE = 0.1
-L_OCCUPIED = 0.2
+L_OCCUPIED = 0.3
 VOXEL_RESOLUTION = 0.1
 
 class VoxelMap:
-    def __init__(self,width = 9.85,height = 5.0,resolution = VOXEL_RESOLUTION):
+    def __init__(self,width = 9.85,height = 5.5,resolution = VOXEL_RESOLUTION):
         self.width = width
         self.height = height
         self.resolution = resolution

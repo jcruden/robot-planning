@@ -194,7 +194,7 @@ class Lidar:
 
         self.world_width  = self.cols * world_resolution
         self.world_height = self.rows * world_resolution
-        self.max_elev = ground_truth.max()
+        self.max_elev = ground_truth.max() + .5
 
         self.angle_min       = angle_min
         self.angle_max       = angle_max
@@ -203,7 +203,7 @@ class Lidar:
         self.vertical_max    = vertical_max
         self.range_min       = range_min
         self.range_max       = range_max
-        self.ray_step        = ray_step if ray_step else grid_resolution/2
+        self.ray_step        = ray_step if ray_step else grid_resolution/3
         self.noise_std       = noise_std
         self.origin_lower    = origin_lower
 

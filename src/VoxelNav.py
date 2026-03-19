@@ -17,11 +17,11 @@ if __name__== "__main__":
 
     lidar = Lidar(m, world_resolution=viz.resolution, grid_resolution=VOXEL_RESOLUTION)
     log_odds = VoxelMap()
-    rob = VoxelRobot(1,1,log_odds,lidar,m)
+    rob = VoxelRobot(1,1,log_odds,lidar,m,random=True)
     plotter = pv.Plotter()
     
-    truex = np.arange(m.shape[1])*.5
-    truey = np.arange(m.shape[0])*.5
+    truex = np.arange(m.shape[1])*.05/VOXEL_RESOLUTION
+    truey = np.arange(m.shape[0])*.05/VOXEL_RESOLUTION
     x_grid, y_grid = np.meshgrid(truex, truey)
     z_grid = m/VOXEL_RESOLUTION  # The heights from your CSV
 
@@ -101,5 +101,5 @@ if __name__== "__main__":
         
         if plotter.render_window is None:
             break
-    print("Robot 1 (random): ", int(100 * rob.calculate_score()), " / 100")
+    print("Score: ", int(100 * rob.calculate_score()[0]), " / 100", rob.calculate_score()[1])
     plotter.show()

@@ -134,5 +134,6 @@ class VoxelRobot():
         explored = np.sum(~np.isnan(elevations))
         total = elevations.size
         coverage = explored / total
-        rmse = np.sqrt(np.nanmean((elevations - self.grid)**2))
-        return coverage * (1 - rmse)        
+        rmse = np.sqrt(np.nanmean((np.repeat(np.repeat(elevations, 2, axis=0), 2, axis=1)[:-1,:-1] - self.grid)**2))
+        normalized_rmse = rmse / (np.nanstd(elevations))
+        return coverage * (1 - rmse), normalized_rmse    
